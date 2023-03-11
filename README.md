@@ -1,9 +1,9 @@
 # fastq-dupaway
 
-fastq-dupaway is a program for memory-eficient deduplication of single-end and paired-end FASTQ and FASTA files (both plain-text and gzip-compressed).<br>
+fastq-dupaway is a program for memory-efficient deduplication of single-end and paired-end FASTQ and FASTA files (both plain-text and gzip-compressed).<br>
 The main advantage is two duplication-removing algoritms implemented:
-* By default, the hashtable-based approach is used. This mode removes only exact duplecates, however it can easily work with situations when reads in apired-end files are not "perfectly synchronised", i.e. the order and amount of reads in first file do not match those of the secod file;
-* The sequence-based approach requires paired-end files to be in perfect sync, hovewer [work in progress] this mode alows user to specify number of mismatches N; pairs of reads that do not differ by more than N mismatches from any other pair in datased will be considered duplicated ant thus removed.
+* By default, the hashtable-based approach is used. This mode removes only exact duplicates, however it can easily work with situations when reads in paired-end files are not "perfectly synchronised", i.e. the order and amount of reads in first file do not match those of the second file;
+* The sequence-based approach requires paired-end files to be in perfect sync, however [work in progress] this mode allows user to specify number of mismatches N; pairs of reads that do not differ by more than N mismatches from any other pair in dataset will be considered duplicated and thus removed.
 
 
 ## Installation
