@@ -25,7 +25,7 @@ public:
 
 struct Options
 {
-    bool no_sort=false, synched=false;
+    bool no_sort=false, synced=false;
     fileFormat format = fileFormat::fastq;
     uint64_t memLimit = 2000000000ul;
     string input_1, input_2, output_1, output_2;
@@ -47,8 +47,8 @@ bool parse_args(int argc, char** argv, Options& opts)
                                                "Values less than 1000000 or greater than 10000000 will be discarded as unrealistic.\n"
                                                "Note that actual memory usage for default hashtable-based deduplication step may exceed this value.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta")
-        ("no-sort", po::bool_switch(&opts.no_sort), "Do not sort input files by id; this option is ignored in \"synched\" mode is on")
-        ("synched", po::bool_switch(&opts.synched), "In paired-end mode, assume reads in input files are synchronized by IDs")
+        ("no-sort", po::bool_switch(&opts.no_sort), "Do not sort input files by id; this option is ignored if \"synced\" mode is on")
+        ("synced", po::bool_switch(&opts.synced), "[This option is subject to change soon] In paired-end mode, assume reads in input files are synchronized by IDs")
         ;
         // Parse command line arguments
         po::variables_map vm;
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
     {
         case fileFormat::fastq:
         {
-            DupRemover<FastQEntry, 4> deduper(opts.no_sort, opts.synched, opts.memLimit);
+            DupRemover<FastQEntry, 4> deduper(opts.no_sort, opts.synced, opts.memLimit);
             // SE or PE
             if (opts.input_2.size()) // paired inputs provided -> PE mode
             {

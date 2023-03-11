@@ -278,6 +278,7 @@ void DupRemover<T, LinesPerObj>::hashFilterPE(const char* infile1,
         // not implemented before I find universal id-defining method
         // TODO!!
         ++count_pairs;
+        //clear and reserve surseq every time?
         string curSeq = left.seq() + "|" + right.seq();
         setRecord record(curSeq, 
                          static_cast<long long>(database.tellp()));
