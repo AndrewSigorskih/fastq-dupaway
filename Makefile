@@ -6,14 +6,16 @@ OBJDIR=obj
 LIBOBJ = $(addprefix $(OBJDIR)/, file_utils.o fastq.o)
 MAINOBJ = $(OBJDIR)/main.o
 
-obj/%.o : src/%.cpp
-	mkdir -p $(OBJDIR)
+all: fastq-dupaway
+
+obj/%.o : src/%.cpp $(OBJDIR)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 fastq-dupaway: $(MAINOBJ) $(LIBOBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(BOOST_LIBS)
 
-all: fastq-dupaway
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
 clean:
 	rm -rf obj/*.o
