@@ -3,7 +3,8 @@
 #include <string>
 
 #include "fastq.hpp"
-#include "dup_remover.hpp"
+#include "seq_dup_remover.hpp"
+#include "hash_dup_remover.hpp"
 
 enum class fileFormat: int { fastq, fasta };
 namespace po = boost::program_options;

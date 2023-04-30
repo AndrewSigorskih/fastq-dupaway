@@ -22,12 +22,12 @@ FastQEntry& FastQEntry::operator=(FastQEntry&& other)
 
 bool operator>(const FastQEntry& left, const FastQEntry& right)
 {
-    return (left.m_id > right.m_id);
+    return (left.m_seq > right.m_seq);
 }
 
 bool operator<(const FastQEntry& left, const FastQEntry& right)
 {
-    return (left.m_id < right.m_id);
+    return (left.m_seq < right.m_seq);
 }
 
 std::istream& operator>>(std::istream& is, FastQEntry& fq)

@@ -17,12 +17,19 @@ public:
     friend std::ostream& operator<<(std::ostream& os,const FastQEntry& fq);
     const string& id() const { return m_id; }
     const string& seq() const { return m_seq; }
-    // add string_view to refactor id() ?
-    // https://stackoverflow.com/questions/46032307/how-to-efficiently-get-a-string-view-for-a-substring-of-stdstring
+   
     // dont store third string!
 private:
     string m_id;
     string m_seq;
     string m_field3;
     string m_qual;
+};
+
+class FastQEntryWithId : FastQEntry
+{
+    friend bool operator>(const FastQEntryWithId& left, const FastQEntryWithId& right);
+    friend bool operator<(const FastQEntryWithId& left, const FastQEntryWithId& right);
+    // add string_view to refactor id() ?
+    // https://stackoverflow.com/questions/46032307/how-to-efficiently-get-a-string-view-for-a-substring-of-stdstring
 };

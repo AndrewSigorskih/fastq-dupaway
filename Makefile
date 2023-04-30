@@ -8,7 +8,7 @@ MAINOBJ = $(OBJDIR)/main.o
 
 all: fastq-dupaway
 
-obj/%.o : src/%.cpp $(OBJDIR)
+obj/%.o : src/%.cpp | $(OBJDIR)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 fastq-dupaway: $(MAINOBJ) $(LIBOBJ)
