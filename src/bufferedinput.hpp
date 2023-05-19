@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 
 class BufferSizeExceeded : public std::exception 
@@ -16,11 +17,12 @@ public:
     bool eof() { return this->m_infile->eof() && this->m_block_end; }
     bool block_end() { return this->m_block_end; }
     void set_file(std::ifstream* ist) { m_infile = ist; this->refresh();}
+    void unset_file();
     void refresh();
     T next();
 
 private:
-    std::streamsize m_cursize, m_curpos = 0;
+    std::streamsize m_maxsize, m_cursize, m_curpos = 0;
     std::ifstream* m_infile = nullptr;
     char* m_buffer = nullptr;
     bool m_block_end = false;
@@ -30,6 +32,7 @@ private:
 template <class T>
 BufferedInput<T>::BufferedInput(std::streamsize size)
 {
+    m_maxsize = size;
     m_cursize = size;
     m_buffer = (char*)malloc(sizeof(char) * size);
 }
@@ -38,6 +41,15 @@ template <class T>
 BufferedInput<T>::~BufferedInput()
 {
     free(m_buffer);
+}
+
+template <class T>
+void BufferedInput<T>::unset_file()
+{
+    this->m_infile = nullptr;
+    this->m_block_end = false;
+    this->cursize = this->m_maxsize;
+    this->m_curpos = 0;
 }
 
 template <class T>

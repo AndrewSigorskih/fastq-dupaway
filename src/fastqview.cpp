@@ -40,8 +40,8 @@ std::streamsize FastqView::read_new(char* start, char* stop)
     if (start >= stop) { return -1; }
     if (*start != '@') { throw std::runtime_error("Fastq record should start with @ symbol!"); }
     char* ptr;
-    m_id = start;
     // search ID
+    m_id = start;
     ptr = std::find(start, stop, '\n');
     if (ptr == stop) { return -1; }
     m_idlen = ptr - start + 1;

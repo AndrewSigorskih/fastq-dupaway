@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "file_utils.hpp"
+#include "bufferedinput.hpp"
 
 template<class T>
 struct RecordPair
