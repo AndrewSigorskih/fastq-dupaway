@@ -53,8 +53,8 @@ void ExternalSorter<T>::sort(const char* infilename,
                              const char* outfilename)
 {
     create_random_dir(m_tempdir, DIRNAME_LEN);
-    this->sort_buckets(infilename1, infilename2);
-    this->merge(outfilename1, outfilename2);
+    this->sort_buckets(infilename);
+    this->merge(outfilename);
     FS::remove_all(m_tempdir);
 }
 
@@ -142,10 +142,10 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
         output << m_queue.top().data();
         m_queue.pop();
         // push new item from file to queue if possible
-        if (m_buffers[i].block_end())
-            m_buffers[i].refresh();
-        if (!m_buffers[i].eof())
-            m_queue.emplace(index, m_buffers[i].next());
+        if (m_buffers[index].block_end())
+            m_buffers[index].refresh();
+        if (!m_buffers[index].eof())
+            m_queue.emplace(index, m_buffers[index].next());
     }
     // cleanup
     for (ssize_t i = 0; i < filesCount; ++i)

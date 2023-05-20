@@ -48,7 +48,7 @@ void BufferedInput<T>::unset_file()
 {
     this->m_infile = nullptr;
     this->m_block_end = false;
-    this->cursize = this->m_maxsize;
+    this->m_cursize = this->m_maxsize;
     this->m_curpos = 0;
 }
 
@@ -80,7 +80,6 @@ void BufferedInput<T>::refresh()
     */
     m_curpos = 0;
     std::streamsize new_size = m_curobj.read_new(m_buffer, m_buffer+m_cursize);
-    std::cout << new_size << " bytes increment" <<"\n";
     if (new_size < 0)
     { // could not read object from block start -> not enough memory in buffer
         throw BufferSizeExceeded();

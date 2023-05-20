@@ -54,12 +54,15 @@ std::streamsize FastqView::read_new(char* start, char* stop)
     m_field3 = ++ptr;
     ptr = std::find(m_field3, stop, '\n');
     if (ptr == stop) { return -1; }
-    m_field3len = ptr - m_seq + 1;
+    m_field3len = ptr - m_field3 + 1;
     // quality
     m_qual = ++ptr;
     ptr = std::find(m_qual, stop, '\n');
     if (ptr == stop) { return -1; }
-    m_quallen = ptr - m_seq + 1;
-    if (m_quallen != m_seqlen) { throw std::runtime_error("Sequence and Quality fields have different lengths!"); }
+    m_quallen = ptr - m_qual + 1;
+    if (m_quallen != m_seqlen)
+    {
+        throw std::runtime_error("Sequence and Quality fields have different lengths!"); 
+    }
     return m_seqlen + m_idlen + m_field3len + m_quallen;
 }
