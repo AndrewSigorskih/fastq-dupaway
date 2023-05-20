@@ -6,161 +6,172 @@
 #include <queue>
 #include <vector>
 
+#include "bufferedinput.hpp"
 #include "file_utils.hpp"
 
 template<class T>
 struct QueueNode
 {
-    uint64_t m_index;
+    ssize_t m_index;
     T m_data;
-    QueueNode (uint64_t i, T item) : m_index(i), m_data(std::move(item)) {}
+    QueueNode (ssize_t i, T item) : m_index(i), m_data(std::move(item)) {}
     // invert the sign so that max_heap turns into min_heap
     bool operator<(const QueueNode& other) const {
         return (this->m_data > other.m_data);
     }
-
     const T& data() const { return this->m_data; } 
 };
 
-template <class T, int LinesPerObj = 1>
+template <class T>
 class ExternalSorter
 {
+public:
+    ExternalSorter(ssize_t);
+    ~ExternalSorter();
+    void sort(const char*, const char*);
 private:
-    uint64_t m_batchsize, m_linesCount, m_filesNum;
+    void sort_buckets(const char*);
+    void mergeHelper(ssize_t, ssize_t, ssize_t);
+    void merge(const char*);
+    void reserve(ssize_t);
+private:
+    ssize_t m_memlimit, m_filesNum;
     char m_tempdir[DIRNAME_LEN + 1];
     std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>> m_queue;
-public:
-    ExternalSorter(uint64_t batch, uint64_t linesCount) : 
-                m_batchsize(batch), m_linesCount(linesCount)
-    {
-        m_tempdir[DIRNAME_LEN] = '\0';
-        std::vector<QueueNode<T>> container;
-        container.reserve(m_batchsize);
-        m_queue = std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>>
-            (std::less<QueueNode<T>>(), std::move(container));
-    }
-    void sort(const char*);
-    void mergeHelper(uint64_t, uint64_t, uint64_t);
-    void merge(const char*);
-    void operator()(const char* infilename, const char* outfilename);
+    std::vector<BufferedInput<T>> m_buffers;
+    std::vector<std::ifstream> m_inputs;
 };
 
-template <class T, int LinesPerObj>
-void ExternalSorter<T, LinesPerObj>::operator()
-    (const char* infilename, const char* outfilename)
+template <class T>
+ExternalSorter<T>::ExternalSorter(ssize_t memlimit)
 {
+    m_memlimit = memlimit;
+    m_tempdir[DIRNAME_LEN] = '\0';
     create_random_dir(m_tempdir, DIRNAME_LEN);
-    //printf("Created dir: %s\n", m_tempdir);  // DEBUG
-    this->sort(infilename);
-    this->merge(outfilename);
-    FS::remove_all(m_tempdir);
 }
 
-template <class T, int LinesPerObj>
-void ExternalSorter<T, LinesPerObj>::sort(const char* infilename)
-{
-    std::cout << "lines in file: " << m_linesCount << std::endl;
-    if ((m_linesCount % LinesPerObj) != 0)
-    {  // change to exception throw?
-        std::cerr << "Error: wrong file format!\n";
-        std::cerr << "Cannot infer non-fractional number of objects from file, exiting.\n";
-        exit(1);
-    }
+template <class T>
+ExternalSorter<T>::~ExternalSorter() { FS::remove_all(m_tempdir); }
 
+template <class T>
+void ExternalSorter<T>::sort(const char* infilename,  
+                             const char* outfilename)
+{
+    this->sort_buckets(infilename);
+    this->merge(outfilename);
+}
+
+template <class T>
+void ExternalSorter<T>::reserve(ssize_t count)
+{
+    // queue
+    std::vector<QueueNode<T>> container;
+    container.reserve(count);
+    m_queue = std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>>
+        (std::less<QueueNode<T>>(), std::move(container));
+    // input buffers
+    ssize_t mem = this->m_memlimit / count;
+    this->m_buffers.reserve(count);
+    for (ssize_t i = 0; i < count; ++i)
+        this->m_buffers.emplace_back(mem);
+    // input files
+    this->m_inputs = std::vector<std::ifstream>(count);
+}
+
+template <class T>
+void ExternalSorter<T>::sort_buckets(const char* infilename)
+{   // maybe be moved outside for gz files support
     std::ifstream input{infilename};
+    std::ofstream output;
     check_fstream_ok<std::ifstream>(input, infilename);
 
-    uint64_t currCount, linesPerBatch, remainder;
-    linesPerBatch = m_batchsize * LinesPerObj;
-    remainder = (m_linesCount % linesPerBatch) / LinesPerObj;
-    m_filesNum = (m_linesCount / linesPerBatch);
-    if (remainder) m_filesNum += 1;
-
-    T* arr = new T[m_batchsize];
-    std::ofstream output;
-
-    std::cout <<"n runs: "<< m_filesNum << " lines pb: " << linesPerBatch<< std::endl;
-
-    for (uint64_t i = 0; i < m_filesNum; ++i)
+    m_filesNum = 0;
+    std::vector<T> arr;
+    // TODO arr.reserve??? 
+    BufferedInput<T> buffer(m_memlimit);
+    buffer.set_file(&input);
+    
+    while(!buffer.eof())
     {
-        // read input file in batches
-        if (!remainder)
-            currCount = m_batchsize;
-        else
-            currCount = i < (m_filesNum-1) ? m_batchsize : remainder;
-        for (uint64_t j = 0; j < currCount; ++j)
-            input >> *(arr+j);
-        // sort batch
-        std::sort(arr, arr+currCount);
-        // write to temporal files in test dir
-        boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % i;
+        m_filesNum++;
+        // read chunk of "view" objects from file
+        while (!buffer.block_end())
+            arr.push_back(buffer.next());
+        // sort objects
+        std::sort(arr.begin(), arr.end());
+        // save sorted chunk to file in tmp dir
+        boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (m_filesNum - 1);
         output.open(fmt.str());
         check_fstream_ok<std::ofstream>(output, fmt.str().c_str());
-        for (uint64_t j = 0; j < currCount; ++j)
-            output << *(arr+j) << '\n';
+        for (auto& item: arr)
+            output << item;
         output.close();
-    }   
-    delete[] arr;
+        // empty array and load new chunk of data
+        arr.clear();
+        buffer.refresh();
+    }
 }
 
-template <class T, int LinesPerObj>
-void ExternalSorter<T, LinesPerObj>::mergeHelper(uint64_t start,
-                                                 uint64_t end,
-                                                 uint64_t location)
+template <class T>
+void ExternalSorter<T>::mergeHelper(ssize_t start,
+                                    ssize_t end,
+                                    ssize_t location)
 {
-    uint64_t filesCount = end - start ;
-    std::ifstream input[filesCount];
-    for (uint64_t i = 0; i < filesCount; ++i) {
-       boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (start+i);
-       input[i].open(fmt.str());
-       check_fstream_ok<std::ifstream>(input[i], fmt.str().c_str());
+    ssize_t filesCount = end - start;
+    // set up files
+    for (ssize_t i = 0; i < filesCount; ++i) {
+        boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (start+i);
+        m_inputs[i].open(fmt.str());
+        check_fstream_ok<std::ifstream>(m_inputs[i], fmt.str().c_str());
+        m_buffers[i].set_file(&(m_inputs[i]));
     }
-
-    for (uint64_t i = 0; i < filesCount; ++i) 
+    // initially fill up queue
+    for (ssize_t i = 0; i < filesCount; ++i) 
     {
-        if (!input[i].eof()) 
+        if (!m_buffers[i].eof()) 
         {
-            T item;
-            input[i] >> item;
-            m_queue.emplace(i, std::move(item));
+            m_queue.emplace(i, m_buffers[i].next());
         }
     }
-
+    // output file
     std::ofstream output;
     boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % location;
     output.open(fmt.str());
     check_fstream_ok<std::ofstream>(output, fmt.str().c_str());
-
+    // merge files iteratively
     while (!m_queue.empty())
     {
-        uint64_t index = m_queue.top().m_index;
-        output << m_queue.top().data() << '\n';
+        ssize_t index = m_queue.top().m_index;
+        output << m_queue.top().data();
         m_queue.pop();
-        // in case of 1-line objects like int
-        // eat trailing \n so we dont go into infinite loop
-        input[index] >> std::ws;
-        if (!input[index].eof()) {
-            T item;
-            input[index] >> item;
-            m_queue.emplace(index, std::move(item));
-        }
+        // push new item from file to queue if possible
+        if (m_buffers[index].block_end())
+            m_buffers[index].refresh();
+        if (!m_buffers[index].eof())
+            m_queue.emplace(index, m_buffers[index].next());
     }
-    for (uint64_t i = 0; i < filesCount; ++i)
-        { input[i].close(); }
+    // cleanup
+    for (ssize_t i = 0; i < filesCount; ++i)
+    {
+        m_inputs[i].close();
+        m_buffers[i].unset_file();
+    }
     output.close();
 }
 
-template <class T, int LinesPerObj>
-void ExternalSorter<T, LinesPerObj>::merge(const char* outfilename)
+template <class T>
+void ExternalSorter<T>::merge(const char* outfilename)
 {
-    uint64_t start = 0, end = m_filesNum, step = 100uL;
+    ssize_t start = 0, end = m_filesNum, step = 100L;
     if (step > end-start)
         step = (end - start + 1) / 2 + 1;
-    std::cout << step << std::endl;
+    // reserve needed memory
+    this->reserve(step);
+    // actual file merging loop
     while (true)
     {
-        uint64_t location = end, dist = std::min(step, end-start+1);
-        uint64_t mid = start + dist;
+        ssize_t location = end, dist = std::min(step, end-start+1);
+        ssize_t mid = start + dist;
         if (mid > end) 
             break;
         mergeHelper(start, mid, location);

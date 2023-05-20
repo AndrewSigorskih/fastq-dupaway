@@ -35,6 +35,7 @@ std::ostream& operator<<(std::ostream& os, const FastqView& fq)
 }
 
 // TODO make errors more informative!
+// https://stackoverflow.com/questions/17438863/c-exceptions-with-message
 std::streamsize FastqView::read_new(char* start, char* stop)
 {   // try to map char* buffer to self, return -1 if buffer end is encountered prematurely
     if (start >= stop) { return -1; }
