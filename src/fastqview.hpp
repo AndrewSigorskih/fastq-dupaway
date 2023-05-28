@@ -8,6 +8,7 @@ class FastqView
 public:
     FastqView() {};
     //FastqView& operator=(FastqView&& other);
+    int cmp(const FastqView& other) const;
     friend bool operator>(const FastqView& left, const FastqView& right);
     friend bool operator<(const FastqView& left, const FastqView& right);
     friend std::ostream& operator<<(std::ostream& os, const FastqView& fq);

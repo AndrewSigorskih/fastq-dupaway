@@ -9,6 +9,8 @@
 #include "bufferedinput.hpp"
 #include "file_utils.hpp"
 
+const ssize_t TEN_MB = 10L * 1024L * 1024L;
+
 template<class T>
 struct QueueNode
 {
@@ -70,7 +72,7 @@ void ExternalSorter<T>::reserve(ssize_t count)
     m_queue = std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>>
         (std::less<QueueNode<T>>(), std::move(container));
     // input buffers
-    ssize_t mem = this->m_memlimit / count;
+    ssize_t mem = std::max(this->m_memlimit / count, TEN_MB);
     this->m_buffers.reserve(count);
     for (ssize_t i = 0; i < count; ++i)
         this->m_buffers.emplace_back(mem);

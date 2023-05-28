@@ -15,16 +15,24 @@ FastqView& FastqView::operator=(FastqView&& other)
 }
 */
 
+int FastqView::cmp(const FastqView& other) const
+{
+    return strncmp(this->m_seq, other.m_seq,
+                   std::min(this->m_seqlen, other.m_seqlen));
+}
+
 bool operator>(const FastqView& left, const FastqView& right)
 {
-    return (strncmp(left.m_seq, right.m_seq, 
-                    std::min(left.m_seqlen, right.m_seqlen)) > 0);
+    /*return (strncmp(left.m_seq, right.m_seq, 
+                    std::min(left.m_seqlen, right.m_seqlen)) > 0);*/
+    return (left.cmp(right) > 0);
 }
 
 bool operator<(const FastqView& left, const FastqView& right)
 {
-    return (strncmp(left.m_seq, right.m_seq, 
-                    std::min(left.m_seqlen, right.m_seqlen)) < 0);
+    /*return (strncmp(left.m_seq, right.m_seq, 
+                    std::min(left.m_seqlen, right.m_seqlen)) < 0);*/
+    return (left.cmp(right) < 0);
 }
 
 std::ostream& operator<<(std::ostream& os, const FastqView& fq)

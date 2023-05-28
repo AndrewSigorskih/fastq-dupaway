@@ -21,6 +21,7 @@ void check_fstream_ok(filehandle& stream, const char* filename)
 {
     if (!stream)
     {
+        // TODO change to exception
         std::cerr << "Error: cannot open file " << filename <<", exiting.\n";
         exit(1);
     }
