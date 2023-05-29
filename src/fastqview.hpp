@@ -8,6 +8,8 @@ class FastqView
 public:
     FastqView() {};
     //FastqView& operator=(FastqView&& other);
+    const char* seq() const { return m_seq; }
+    const ssize_t seq_len() const { return m_seqlen; }
     int cmp(const FastqView& other) const;
     friend bool operator>(const FastqView& left, const FastqView& right);
     friend bool operator<(const FastqView& left, const FastqView& right);
