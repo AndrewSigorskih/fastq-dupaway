@@ -16,6 +16,6 @@ public:
 private:
     char* m_buf_1 = nullptr;
     char* m_buf_2 = nullptr;
+    ssize_t m_len_1 = 0, m_len_2 = 0;
     ssize_t m_capacity_1 = 0, m_capacity_2 = 0;
-    ssize_t m_len_1, m_len_2;
 };

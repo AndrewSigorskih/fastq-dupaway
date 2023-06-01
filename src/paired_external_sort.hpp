@@ -36,13 +36,13 @@ struct RecordPair
 };
 
 template<class T>
-struct QueueNode
+struct PairedQueueNode
 {
     ssize_t m_index;
     RecordPair<T> m_data;
-    QueueNode (ssize_t i, T right, T left) : m_index(i), m_data(right, left) {}
+    PairedQueueNode (ssize_t i, T right, T left) : m_index(i), m_data(right, left) {}
     // invert the sign so that max_heap turns into min_heap
-    bool operator<(const QueueNode& other) const {
+    bool operator<(const PairedQueueNode& other) const {
         return (this->m_data > other.m_data);
     }
     const RecordPair<T>& data() const { return this->m_data; } 
@@ -63,7 +63,7 @@ private:
 private:
     ssize_t m_memlimit, m_filesNum;
     char m_tempdir[DIRNAME_LEN + 1];
-    std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>> m_queue;
+    std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
     std::vector<std::ifstream> m_inputs;
 };
@@ -93,10 +93,10 @@ template <class T>
 void PairedExternalSorter<T>::reserve(ssize_t count)
 {
     // queue
-    std::vector<QueueNode<T>> container;
+    std::vector<PairedQueueNode<T>> container;
     container.reserve(count);
-    m_queue = std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>>
-        (std::less<QueueNode<T>>(), std::move(container));
+    m_queue = std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>>
+        (std::less<PairedQueueNode<T>>(), std::move(container));
     // input buffers
     ssize_t mem = std::max(this->m_memlimit / (count*2), TEN_MB);
     this->m_buffers.reserve(count * 2);
