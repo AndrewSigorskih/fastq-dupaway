@@ -51,7 +51,8 @@ bool Comparator::compare(const char* seq, ssize_t len)
 bool Comparator::compare(const char* seq_1, ssize_t len_1,
                          const char* seq_2, ssize_t len_2)
 {
-    if (!m_buf_2) { ; } // TODO throw error here
+    if (!m_buf_2) 
+    { throw std::runtime_error("Comparator was initialized in single-sequence mode, however paired-sequence comparison was requested."); }
     bool first_cmp = this->compare(seq_1, len_1);
     if (!first_cmp) return false;
     if (len_2 != m_len_2) return false;

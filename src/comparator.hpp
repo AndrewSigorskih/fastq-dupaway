@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <cstdio>
 #include <cstring>
+#include <stdexcept>
 
 const ssize_t STARTING_SEQ_SIZE = 150L;
 
