@@ -23,9 +23,8 @@ void create_random_dir(char* buf, int len, uint n_tries)
         n_tries--;
         if (!n_tries)
         {
-            std::cerr << "Could not create directory with randomly-generated name ";
-            std::cerr << "in " << n_tries << "tries. Exiting.";
-            exit(1);
+            std::cerr << "Could not create directory with randomly-generated name in " << n_tries << " tries!" << std::endl;
+            throw std::runtime_error("Number of tries exhausted.");
         } 
     }
 }
@@ -43,9 +42,8 @@ void create_random_file(char* buf, int len, uint n_tries)
         n_tries--;
         if (!n_tries)
         {
-            std::cerr << "Could not create file with randomly-generated name ";
-            std::cerr << "in " << n_tries << "tries. Exiting.";
-            exit(1);
+            std::cerr << "Could not create file with randomly-generated name in " << n_tries << " tries!" << std::endl;
+            throw std::runtime_error("Number of tries exhausted.");
         }
     }
 }

@@ -18,7 +18,7 @@ Comparator::~Comparator()
         free(m_buf_2);
 }
 
-void Comparator::set_seq(char* seq, ssize_t len)
+void Comparator::set_seq(const char* seq, ssize_t len)
 {
     if (len > m_capacity_1)
     {
@@ -29,8 +29,8 @@ void Comparator::set_seq(char* seq, ssize_t len)
     memcpy(m_buf_1, seq, len);
 }
 
-void Comparator::set_seq(char* seq_1, ssize_t len_1,
-                         char* seq_2, ssize_t len_2)
+void Comparator::set_seq(const char* seq_1, ssize_t len_1,
+                         const char* seq_2, ssize_t len_2)
 {
     this->set_seq(seq_1, len_1);
     if (len_2 > m_capacity_2)
@@ -42,14 +42,14 @@ void Comparator::set_seq(char* seq_1, ssize_t len_1,
     memcpy(m_buf_2, seq_2, len_2);
 }
 
-bool Comparator::compare(char* seq, ssize_t len)
+bool Comparator::compare(const char* seq, ssize_t len)
 {  // simple comparison by now
     if (len != m_len_1) return false;
     return (strncmp(seq, m_buf_1, len) == 0);
 }
 
-bool Comparator::compare(char* seq_1, ssize_t len_1,
-                         char* seq_2, ssize_t len_2)
+bool Comparator::compare(const char* seq_1, ssize_t len_1,
+                         const char* seq_2, ssize_t len_2)
 {
     if (!m_buf_2) { ; } // TODO throw error here
     bool first_cmp = this->compare(seq_1, len_1);

@@ -10,29 +10,15 @@
 //#include "fastq.hpp"
 //#include "hash_dup_remover.hpp"
 
-namespace po = boost::program_options;
 using std::string;
-
-class InvalidFileFormatException : public std::exception 
-{
-public:
-    const char * what () const throw() 
-    { return "Only \"fastq\" or \"fasta\" file formats are supported!"; }
-};
-
-class InvalidPEArgs : public std::exception 
-{
-public:
-    const char * what () const throw() 
-    { return "Both input-2 and output-2 arguments are required for paired-end mode!"; }
-};
+namespace po = boost::program_options;
 
 enum Modes
 {
-    BASE = 0,
-    FASTA = 1,
-    PAIRED = 2,
-    HASH = 4
+    BASE = 0,   // Base case: single-end Fastq file, seq-based approach
+    FASTA = 1,  // change format to Fasta
+    PAIRED = 2, // paired-end input
+    HASH = 4    // use hash-based approach instead of seq comparison
 };
 
 inline Modes operator | (Modes a, Modes b)
@@ -79,7 +65,7 @@ bool parse_args(int argc, char** argv, Options& opts)
 
         // check whether PE mode args passed correctly
         if (vm.count("input-2") ^ vm.count("output-2"))
-        { throw InvalidPEArgs(); }
+        { throw std::runtime_error("Both input-2 and output-2 arguments are required for paired-end mode!"); }
 
         // paired or single mode
         if (vm.count("input-2"))
@@ -94,7 +80,7 @@ bool parse_args(int argc, char** argv, Options& opts)
             else if (value == "fasta")
                 opts.mode = (opts.mode | Modes::FASTA);
             else
-                throw InvalidFileFormatException(); // TODO better custom exceptions
+                throw std::runtime_error("Only \"fastq\" or \"fasta\" file formats are supported!");
         }
 
         // seq-based or hash-based
@@ -143,7 +129,6 @@ int main(int argc, char** argv)
 
     std:: cout << "mem limit: " << opts.memLimit << '\n';
     // actual logic
-    // TODO switch all exits to exceptions, implement custom message exceptions
     // TODO finish hash-based dup remover and id-sorted object-view classes
     // TODO: implement fasta support
     // TODO: implement gzipped files support
@@ -153,20 +138,33 @@ int main(int argc, char** argv)
     try {
         if (opts.mode == Modes::BASE) {
             std:: cout << "seq, single, fastq\n";
+            comp = new Comparator(false);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
+            remover.filterSE(opts.input_1, opts.output_1);
         } else if (opts.mode == Modes::FASTA) {
             std::cout << "seq, single, fasta\n";
+            std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
+            comp = new Comparator(true);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
+            remover.filterPE(opts.input_1, opts.input_2,
+                             opts.output_1, opts.output_2);
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
             std::cout << "seq, paired, fasta\n";
+            std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == Modes::HASH) {
             std:: cout << "hash, single, fastq\n";
+            std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
             std::cout << "hash, single, fasta\n";
+            std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             std::cout << "hash, paired, fastq\n";
+            std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
             std::cout << "hash, paired, fasta\n";
+            std::cerr << "This mode is not properly implemented yet!\n";
         } else {
             std::cerr << "Unknown mode!!!\n";
         }

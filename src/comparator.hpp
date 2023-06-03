@@ -10,10 +10,10 @@ class Comparator
 public:
     Comparator(bool);
     ~Comparator();
-    void set_seq(char*, ssize_t);
-    void set_seq(char*, ssize_t, char*, ssize_t);
-    bool compare(char*, ssize_t);
-    bool compare(char*, ssize_t, char*, ssize_t);
+    void set_seq(const char*, ssize_t);
+    void set_seq(const char*, ssize_t, const char*, ssize_t);
+    bool compare(const char*, ssize_t);
+    bool compare(const char*, ssize_t, const char*, ssize_t);
 private:
     char* m_buf_1 = nullptr;
     char* m_buf_2 = nullptr;

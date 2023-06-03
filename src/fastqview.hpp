@@ -16,6 +16,9 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const FastqView& fq);
     std::streamsize read_new(char*, char*);
 private:
+    void err_invalid_start(char*);
+    void err_len_not_match();
+private:
     char* m_id = nullptr;
     char* m_seq = nullptr;
     char* m_field3 = nullptr;

@@ -1,13 +1,6 @@
 #pragma once
 #include <fstream>
 
-class BufferSizeExceeded : public std::exception 
-{
-public:
-    const char * what () const throw() 
-    { return "Not enough memory to read a single object!"; }
-};
-
 template <class T>
 class BufferedInput
 {
@@ -72,17 +65,12 @@ void BufferedInput<T>::refresh()
         this->m_infile->read(m_buffer, m_cursize);
         m_cursize = this->m_infile->gcount();
     }
-    /*
-    std::cout << this->m_infile->gcount() << " bytes read, current size is " << m_cursize << '\n';
-    std::cout << "\n>>START OF CHUNK<<\n|";
-    for (int i = 0; i < m_cursize; ++i) {std::cout << *(m_buffer+i);}
-    std::cout << "|\n>>END OF CHUNK<<\n\n";
-    */
+    
     m_curpos = 0;
     std::streamsize new_size = m_curobj.read_new(m_buffer, m_buffer+m_cursize);
     if (new_size < 0)
     { // could not read object from block start -> not enough memory in buffer
-        throw BufferSizeExceeded();
+        throw std::runtime_error("Not enough memory to read a single object!");
     } else {
         m_curpos += new_size;
     }

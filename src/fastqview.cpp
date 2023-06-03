@@ -47,7 +47,7 @@ std::ostream& operator<<(std::ostream& os, const FastqView& fq)
 std::streamsize FastqView::read_new(char* start, char* stop)
 {   // try to map char* buffer to self, return -1 if buffer end is encountered prematurely
     if (start >= stop) { return -1; }
-    if (*start != '@') { throw std::runtime_error("Fastq record should start with @ symbol!"); }
+    if (*start != '@') { this->err_invalid_start(start); }
     char* ptr;
     // search ID
     m_id = start;
@@ -69,9 +69,23 @@ std::streamsize FastqView::read_new(char* start, char* stop)
     ptr = std::find(m_qual, stop, '\n');
     if (ptr == stop) { return -1; }
     m_quallen = ptr - m_qual + 1;
-    if (m_quallen != m_seqlen)
-    {
-        throw std::runtime_error("Sequence and Quality fields have different lengths!"); 
-    }
+    if (m_quallen != m_seqlen) { this->err_len_not_match(); }
     return m_seqlen + m_idlen + m_field3len + m_quallen;
+}
+
+void FastqView::err_invalid_start(char* ptr)
+{
+    std::cerr << "Invalid record start character: ";
+    std::cerr << *ptr << std::endl;
+    throw std::runtime_error("Fastq record should start with @ symbol!");
+}
+
+void FastqView::err_len_not_match()
+{
+    std::cerr << "Found sequence ";
+    std::cerr.write(m_seq, m_seqlen-1);
+    std::cerr <<" of length " << m_seqlen << " and quality string ";
+    std::cerr.write(m_qual, m_quallen-1);
+    std::cerr << " of length " << m_quallen << std::endl;
+    throw std::runtime_error("Sequence and Quality fields of Fastq record should have the same length!"); 
 }

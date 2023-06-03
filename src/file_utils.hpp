@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -7,7 +8,6 @@
 #include <random>
 
 namespace FS = std::filesystem;
-
 const int DIRNAME_LEN = 10;
 
 void generate_random_name(char* buf, int len);
@@ -21,8 +21,9 @@ void check_fstream_ok(filehandle& stream, const char* filename)
 {
     if (!stream)
     {
-        // TODO change to exception
-        std::cerr << "Error: cannot open file " << filename <<", exiting.\n";
-        exit(1);
+        std::cerr << "Cannot open file ";
+        std::cerr.write(filename, strlen(filename));
+        std::cerr << std::endl;
+        throw std::runtime_error("File does not exist or cannot be opened!");
     }
 }
