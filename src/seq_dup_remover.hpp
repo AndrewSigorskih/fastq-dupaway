@@ -136,7 +136,7 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
     output1 << left;
     output2 << right;
 
-    while (!left_buffer.eof() && !right_buffer2.eof())
+    while (!left_buffer.eof() && !right_buffer.eof())
     {
         while (!left_buffer.block_end() && right_buffer.block_end())
         {

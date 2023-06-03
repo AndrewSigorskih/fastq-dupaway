@@ -2,11 +2,14 @@
 #include <iostream>
 #include <string>
 
-#include "fastq.hpp"
+#include "constants.h"
+#include "comparator.hpp"
+#include "fastqview.hpp"
 #include "seq_dup_remover.hpp"
-#include "hash_dup_remover.hpp"
 
-enum class fileFormat: int { fastq, fasta };
+//#include "fastq.hpp"
+//#include "hash_dup_remover.hpp"
+
 namespace po = boost::program_options;
 using std::string;
 
@@ -14,29 +17,41 @@ class InvalidFileFormatException : public std::exception
 {
 public:
     const char * what () const throw() 
-    { return "only \"fastq\" or \"fasta\" file formats are supported!"; }
+    { return "Only \"fastq\" or \"fasta\" file formats are supported!"; }
 };
 
 class InvalidPEArgs : public std::exception 
 {
 public:
     const char * what () const throw() 
-    { return "both input-2 and output-2 arguments are required for paired-end mode!"; }
+    { return "Both input-2 and output-2 arguments are required for paired-end mode!"; }
 };
+
+enum Modes
+{
+    BASE = 0,
+    FASTA = 1,
+    PAIRED = 2,
+    HASH = 4
+};
+
+inline Modes operator | (Modes a, Modes b)
+{
+    return static_cast<Modes>(static_cast<int>(a) | static_cast<int>(b));
+}
 
 struct Options
 {
-    bool no_sort=false, synced=false;
-    fileFormat format = fileFormat::fastq;
-    uint64_t memLimit = 2000000000ul;
+    Modes mode = Modes::BASE;
+    ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
 };
 
 bool parse_args(int argc, char** argv, Options& opts)
 {
-    try
-    {
+    try {
         // Configure options here
+        bool hash_opt = false;
         po::options_description desc ("Supported options");
         desc.add_options()
         ("help,h", "Produce help message and exit")
@@ -44,12 +59,13 @@ bool parse_args(int argc, char** argv, Options& opts)
         ("input-2,u", po::value<string>(&opts.input_2), "Second input file (optional, enables paired-end mode)")
         ("output-1,o", po::value<string>(&opts.output_1)->required(), "First output file (required)")
         ("output-2,p", po::value<string>(&opts.output_2), "Second output file (optional, required for paired-end mode)")
-        ("mem-limit,m", po::value<int64_t>(), "Memory limit in kilobytes for sorting (default 2000000 ~ 2Gb).\n"
-                                               "Values less than 1000000 or greater than 10000000 will be discarded as unrealistic.\n"
-                                               "Note that actual memory usage for default hashtable-based deduplication step may exceed this value.")
+        ("mem-limit,m", po::value<ssize_t>(), "Memory limit in megabytes (default 2048 = 2Gb).\n"
+                                              "Supported value range is [100 <-> 10240 (10 Gb)]\n"
+                                              "Actual memory usage will slightly exceed this value.\n"
+                                              "The hashtable-based deduplication mode does not support strict memory limitation,\n"
+                                              "but will most likely not exceed upper bound.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta")
-        ("no-sort", po::bool_switch(&opts.no_sort), "Do not sort input files by id; this option is ignored if \"synced\" mode is on")
-        ("synced", po::bool_switch(&opts.synced), "[This option is subject to change soon] In paired-end mode, assume reads in input files are synchronized by IDs")
+        ("hashed", po::bool_switch(&hash_opt), "[This option is subject to change soon] Use hash-based approach instead of sequence-based.")
         ;
         // Parse command line arguments
         po::variables_map vm;
@@ -65,6 +81,10 @@ bool parse_args(int argc, char** argv, Options& opts)
         if (vm.count("input-2") ^ vm.count("output-2"))
         { throw InvalidPEArgs(); }
 
+        // paired or single mode
+        if (vm.count("input-2"))
+        { opts.mode  = (opts.mode | Modes::PAIRED); }
+
         // file format check
         if (vm.count("format"))
         {
@@ -72,27 +92,32 @@ bool parse_args(int argc, char** argv, Options& opts)
             if (value == "fastq")
                 ;
             else if (value == "fasta")
-                opts.format = fileFormat::fasta;
+                opts.mode = (opts.mode | Modes::FASTA);
             else
-                throw InvalidFileFormatException();
+                throw InvalidFileFormatException(); // TODO better custom exceptions
         }
+
+        // seq-based or hash-based
+        if (hash_opt)
+        { opts.mode = (opts.mode | Modes::HASH); }
 
         // memory limit safe check
         if (vm.count("mem-limit"))
         {
-            int64_t value = vm["mem-limit"].as<int64_t>();
-            if ((value >= 1000000l) && (value <= 10000000l))
-                opts.memLimit = static_cast<uint64_t>(value) * 1000l;
+            ssize_t value = vm["mem-limit"].as<ssize_t>();
+            if ((value >= 100L) && (value <= 10240L))
+                opts.memLimit = value * constants::ONE_MB;
         }
     }
-    catch(std::exception& e)
+    catch(const std::exception& e)
     {
-        std::cerr << "Error: " << e.what() << "\n";
+        std::cerr << "An error occured:\n";
+        std::cerr << e.what() << '\n';
         return false;
     }
     catch(...)
     {
-        std::cerr << "Unknown error!" << "\n";
+        std::cerr << "Unknown error!" << '\n';
         return false;
     }
     return true;
@@ -105,7 +130,7 @@ int main(int argc, char** argv)
     if (!result)
         return 1;
     
-    // verbose info
+    // verbose info, will be deleted
     std::cout << "Input file(s): " << opts.input_1;
     if (opts.input_2.size())
         std::cout << " and " << opts.input_2;
@@ -116,50 +141,42 @@ int main(int argc, char** argv)
         std::cout << " and " << opts.output_2;
     std::cout << '\n';
 
-    std::cout <<"no-sort: " << opts.no_sort << '\n';
-
-    switch (opts.format)
-    {
-        case fileFormat::fastq:
-            std::cout << "fastq\n";
-            break;
-        case fileFormat::fasta:
-            std::cout << "fasta\n";
-            break;
-        default:
-            std::cerr << "WRONG FILEFORMAT\n";
-    }
-
     std:: cout << "mem limit: " << opts.memLimit << '\n';
     // actual logic
-    // TODO: implement seq dup remover as separate class
+    // TODO switch all exits to exceptions, implement custom message exceptions
+    // TODO finish hash-based dup remover and id-sorted object-view classes
     // TODO: implement fasta support
     // TODO: implement gzipped files support
-    switch (opts.format)
-    {
-        case fileFormat::fastq:
-        {
-            DupRemover<FastQEntry, 4> deduper(opts.no_sort, opts.synced, opts.memLimit);
-            // SE or PE
-            if (opts.input_2.size()) // paired inputs provided -> PE mode
-            {
-                deduper.FilterPE(
-                    opts.input_1,
-                    opts.input_2,
-                    opts.output_1,
-                    opts.output_2);
-            } else { // SE mode
-                deduper.FilterSE(opts.input_1, opts.output_1);
-            }
-            break;
+
+    Comparator* comp = nullptr;
+
+    try {
+        if (opts.mode == Modes::BASE) {
+            std:: cout << "seq, single, fastq\n";
+        } else if (opts.mode == Modes::FASTA) {
+            std::cout << "seq, single, fasta\n";
+        } else if (opts.mode == Modes::PAIRED) {
+            std:: cout << "seq, paired, fastq\n";
+        } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
+            std::cout << "seq, paired, fasta\n";
+        } else if (opts.mode == Modes::HASH) {
+            std:: cout << "hash, single, fastq\n";
+        } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
+            std::cout << "hash, single, fasta\n";
+        } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
+            std::cout << "hash, paired, fastq\n";
+        } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
+            std::cout << "hash, paired, fasta\n";
+        } else {
+            std::cerr << "Unknown mode!!!\n";
         }
-        case fileFormat::fasta:
-        {
-            std::cerr << "fasta file format not implemented yet!\n";
-            break;
-        }
-        default:
-            break;
+    } catch (const std::exception& exc) {
+        std::cerr << "An error occured:\n";
+        std::cerr << exc.what() << '\n';
     }
+
+    if (comp)
+        delete comp;
+    
     return 0;
 }

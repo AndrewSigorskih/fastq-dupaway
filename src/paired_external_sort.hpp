@@ -6,10 +6,10 @@
 #include <queue>
 #include <vector>
 
+#include "constants.h"
 #include "bufferedinput.hpp"
 #include "file_utils.hpp"
 
-const ssize_t TEN_MB = 10L * 1024L * 1024L;
 
 template<class T>
 struct RecordPair
@@ -98,7 +98,7 @@ void PairedExternalSorter<T>::reserve(ssize_t count)
     m_queue = std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>>
         (std::less<PairedQueueNode<T>>(), std::move(container));
     // input buffers
-    ssize_t mem = std::max(this->m_memlimit / (count*2), TEN_MB);
+    ssize_t mem = std::max(this->m_memlimit / (count*2), constants::ONE_MB);
     this->m_buffers.reserve(count * 2);
     for (ssize_t i = 0; i < count*2; ++i)
         this->m_buffers.emplace_back(mem);
@@ -218,7 +218,7 @@ template <class T>
 void PairedExternalSorter<T>::merge(const char* outfilename1,
                                     const char* outfilename2)
 {
-    ssize_t start = 0, end = m_filesNum, step = 100L;
+    ssize_t start = 0, end = m_filesNum, step = 50L;
     if (step > end-start)
         step = (end - start + 1) / 2 + 1;
     // reserve needed memory

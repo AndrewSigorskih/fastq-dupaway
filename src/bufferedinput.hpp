@@ -1,5 +1,5 @@
 #pragma once
-#include <iostream>
+#include <fstream>
 
 class BufferSizeExceeded : public std::exception 
 {
