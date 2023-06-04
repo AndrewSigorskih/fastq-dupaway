@@ -23,15 +23,11 @@ int FastqView::cmp(const FastqView& other) const
 
 bool operator>(const FastqView& left, const FastqView& right)
 {
-    /*return (strncmp(left.m_seq, right.m_seq, 
-                    std::min(left.m_seqlen, right.m_seqlen)) > 0);*/
     return (left.cmp(right) > 0);
 }
 
 bool operator<(const FastqView& left, const FastqView& right)
 {
-    /*return (strncmp(left.m_seq, right.m_seq, 
-                    std::min(left.m_seqlen, right.m_seqlen)) < 0);*/
     return (left.cmp(right) < 0);
 }
 
@@ -42,8 +38,6 @@ std::ostream& operator<<(std::ostream& os, const FastqView& fq)
     return os;
 }
 
-// TODO make errors more informative!
-// https://stackoverflow.com/questions/17438863/c-exceptions-with-message
 std::streamsize FastqView::read_new(char* start, char* stop)
 {   // try to map char* buffer to self, return -1 if buffer end is encountered prematurely
     if (start >= stop) { return -1; }
@@ -88,4 +82,34 @@ void FastqView::err_len_not_match()
     std::cerr.write(m_qual, m_quallen-1);
     std::cerr << " of length " << m_quallen << std::endl;
     throw std::runtime_error("Sequence and Quality fields of Fastq record should have the same length!"); 
+}
+
+int FastqViewWithId::cmp(const FastqViewWithId& other) const
+{
+    return strncmp(this->m_idtag, other.m_idtag,
+                   std::min(this->m_idtag_len, other.m_idtag_len));
+}
+
+bool operator>(const FastqViewWithId& left, const FastqViewWithId& right)
+{
+    return (left.cmp(right) > 0);
+}
+
+bool operator<(const FastqViewWithId& left, const FastqViewWithId& right)
+{
+    return (left.cmp(right) < 0);
+}
+
+std::streamsize FastqViewWithId::read_new(char* start, char* stop)
+{
+    std::streamsize size = FastqView::read_new(start, stop);
+    char* ptr;
+    ptr = std::find(m_id, m_id+m_idlen, '.');
+    if (ptr == m_id+m_idlen)  // id in a form of "@XXXXX some_text"
+        m_idtag = m_id + 1;  // dont use @ in comparison
+    else                    // id in a form of "@XXXX.NNNNN some_text"
+        m_idtag = ptr + 1; // we need NNNNN part
+    ptr = std::find(m_idtag, m_id+m_idlen, ' ');
+    m_idtag_len = ptr - m_idtag;
+    return size;
 }

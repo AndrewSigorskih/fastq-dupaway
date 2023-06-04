@@ -44,6 +44,7 @@ void Comparator::set_seq(const char* seq_1, ssize_t len_1,
 
 bool Comparator::compare(const char* seq, ssize_t len)
 {  // simple comparison by now
+  // TODO make analog of fastuniq compare_tight OR compare_loose here!
     if (len != m_len_1) return false;
     return (strncmp(seq, m_buf_1, len) == 0);
 }

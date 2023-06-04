@@ -18,7 +18,7 @@ public:
 private:
     void err_invalid_start(char*);
     void err_len_not_match();
-private:
+protected:
     char* m_id = nullptr;
     char* m_seq = nullptr;
     char* m_field3 = nullptr;
@@ -26,9 +26,14 @@ private:
     std::streamsize m_idlen = 0, m_seqlen = 0, m_field3len = 0, m_quallen = 0;
 };
 
-class FastqViewWithId : FastqView
+class FastqViewWithId : public FastqView
 {
-    // TODO
-    // extract Illumina-style ID and store it in extra fields
-    // new comparison operators: compare by ID instead of seq
+public:
+    int cmp(const FastqViewWithId& other) const;
+    friend bool operator>(const FastqViewWithId& left, const FastqViewWithId& right);
+    friend bool operator<(const FastqViewWithId& left, const FastqViewWithId& right);
+    std::streamsize read_new(char*, char*);
+private:
+    char* m_idtag = nullptr;
+    std::streamsize m_idtag_len = 0;
 };
