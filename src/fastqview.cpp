@@ -17,8 +17,15 @@ FastqView& FastqView::operator=(FastqView&& other)
 
 int FastqView::cmp(const FastqView& other) const
 {
-    return strncmp(this->m_seq, other.m_seq,
-                   std::min(this->m_seqlen, other.m_seqlen));
+    /*return strncmp(this->m_seq, other.m_seq,
+                   std::min(this->m_seqlen, other.m_seqlen));*/
+    int res = strncmp(this->m_seq, other.m_seq,
+                      std::min(this->m_seqlen, other.m_seqlen));
+    if ((res==0) && (this->m_seqlen < other.m_seqlen))
+        return -1;
+    if ((res==0) && (this->m_seqlen > other.m_seqlen))
+        return 1;
+    return res;
 }
 
 bool operator>(const FastqView& left, const FastqView& right)
@@ -86,6 +93,7 @@ void FastqView::err_len_not_match()
 
 int FastqViewWithId::cmp(const FastqViewWithId& other) const
 {
+    // TODO change this cmp as well
     return strncmp(this->m_idtag, other.m_idtag,
                    std::min(this->m_idtag_len, other.m_idtag_len));
 }
