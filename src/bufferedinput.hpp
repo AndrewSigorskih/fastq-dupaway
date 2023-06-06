@@ -56,6 +56,8 @@ void BufferedInput<T>::refresh()
     this->m_block_end = false;
     if (m_curpos > 0)
     {
+        if (!m_curobj.isEmpty())
+            m_curpos -= m_curobj.size();
         std::streamsize num_trailing = m_cursize-m_curpos;
         memmove(m_buffer, m_buffer+m_curpos, num_trailing);
         //memcpy(m_buffer, m_buffer+m_curpos, num_trailing);

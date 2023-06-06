@@ -10,6 +10,8 @@ public:
     FastqView& operator=(FastqView&& other);
     const char* seq() const { return m_seq; }
     ssize_t seq_len() const { return m_seqlen; }
+    ssize_t size() const { return m_idlen+m_seqlen+m_field3len+m_quallen; }
+    bool isEmpty() const;
     int cmp(const FastqView& other) const;
     friend bool operator>(const FastqView& left, const FastqView& right);
     friend bool operator<(const FastqView& left, const FastqView& right);

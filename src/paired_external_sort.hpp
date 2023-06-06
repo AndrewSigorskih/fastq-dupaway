@@ -150,10 +150,8 @@ void PairedExternalSorter<T>::sort_buckets(const char* infilename1,
         output2.close();
         // empty array and load new chunks of data
         arr.clear();
-        if (buffer1.block_end())
-            buffer1.refresh();
-        if (buffer2.block_end())
-            buffer2.refresh();
+        buffer1.refresh();
+        buffer2.refresh();
     }
 }
 

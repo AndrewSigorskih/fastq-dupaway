@@ -13,12 +13,16 @@ FastqView& FastqView::operator=(FastqView&& other)
     return *this;
 }
 
+bool FastqView::isEmpty() const
+{
+    return ((this->m_id == nullptr) || (this->m_seq == nullptr) || (this->m_field3 == nullptr) || (this->m_qual == nullptr));
+}
 
 int FastqView::cmp(const FastqView& other) const
 {
     /*return strncmp(this->m_seq, other.m_seq,
                    std::min(this->m_seqlen, other.m_seqlen));*/
-    if ((this->m_seq == nullptr) || (other.m_seq==nullptr))
+    if ((this->isEmpty()) || (other.isEmpty()))
         throw std::runtime_error("Trying to compare an empty Fastq object!");
     int res = strncmp(this->m_seq, other.m_seq,
                       std::min(this->m_seqlen, other.m_seqlen));
@@ -42,7 +46,7 @@ bool operator<(const FastqView& left, const FastqView& right)
 std::ostream& operator<<(std::ostream& os, const FastqView& fq)
 {
     // safety plug
-    if ((fq.m_id == nullptr) || (fq.m_seq == nullptr) || (fq.m_field3 == nullptr) || (fq.m_qual == nullptr))
+    if (fq.isEmpty())
         throw std::runtime_error("Trying to write an empty Fastq object!");
     os.write(fq.m_id, fq.m_idlen+fq.m_seqlen+fq.m_field3len+fq.m_quallen);
     // TODO skip third field and only write "+\n"?
