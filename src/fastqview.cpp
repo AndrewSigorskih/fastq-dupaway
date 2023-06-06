@@ -37,8 +37,8 @@ int FastqView::cmp(const FastqView& other) const
 {
     /*return strncmp(this->m_seq, other.m_seq,
                    std::min(this->m_seqlen, other.m_seqlen));*/
-    if ((this->isEmpty()) || (other.isEmpty()))
-        throw std::runtime_error("Trying to compare an empty Fastq object!");
+    //if ((this->isEmpty()) || (other.isEmpty()))
+        //throw std::runtime_error("Trying to compare an empty Fastq object!");
     int res = strncmp(this->m_seq, other.m_seq,
                       std::min(this->m_seqlen, other.m_seqlen));
     if ((res==0) && (this->m_seqlen < other.m_seqlen))
@@ -61,8 +61,8 @@ bool operator<(const FastqView& left, const FastqView& right)
 std::ostream& operator<<(std::ostream& os, const FastqView& fq)
 {
     // safety plug
-    if (fq.isEmpty())
-        throw std::runtime_error("Trying to write an empty Fastq object!");
+    //if (fq.isEmpty())
+        //throw std::runtime_error("Trying to write an empty Fastq object!");
     os.write(fq.m_id, fq.m_idlen+fq.m_seqlen+fq.m_field3len+fq.m_quallen);
     // TODO skip third field and only write "+\n"?
     return os;
@@ -91,7 +91,7 @@ std::streamsize FastqView::read_new(char* start, char* stop)
     // quality
     m_qual = ++ptr;
     ptr = std::find(m_qual, stop, '\n');
-    if (ptr == stop) { return -1; }
+    if (ptr == stop) { m_qual = nullptr; return -1; }
     m_quallen = ptr - m_qual + 1;
     if (m_quallen != m_seqlen) { this->err_len_not_match(); }
     return m_seqlen + m_idlen + m_field3len + m_quallen;
