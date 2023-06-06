@@ -2,44 +2,56 @@
 
 FastqView::FastqView(const FastqView& other)
 {
-    this->m_id = other.m_id; this->m_idlen = other.m_idlen;
-    this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen;
-    this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len; 
-    this->m_qual = other.m_qual; this->m_quallen = other.m_quallen;
+    this->m_id = other.m_id; 
+    this->m_idlen = other.m_idlen;
+    this->m_seqlen = other.m_seqlen;
+    this->m_field3len = other.m_field3len; 
+    this->m_quallen = other.m_quallen;
 }
 
 FastqView::FastqView(FastqView&& other)
 {
-    this->m_id = other.m_id; this->m_idlen = other.m_idlen; other.m_id=nullptr;
-    this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen; other.m_seq = nullptr;
-    this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len; other.m_field3 = nullptr;
-    this->m_qual = other.m_qual; this->m_quallen = other.m_quallen; other.m_qual = nullptr;
+    this->m_id = other.m_id;
+    this->m_idlen = other.m_idlen;
+    this->m_seqlen = other.m_seqlen;
+    this->m_field3len = other.m_field3len;
+    this->m_quallen = other.m_quallen;
+    other.clear();
 }
 
 FastqView& FastqView::operator=(FastqView&& other)
 {
     if (this != &other)
     {
-        this->m_id = other.m_id; this->m_idlen = other.m_idlen; other.m_id=nullptr;
-        this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen; other.m_seq = nullptr;
-        this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len; other.m_field3 = nullptr;
-        this->m_qual = other.m_qual; this->m_quallen = other.m_quallen; other.m_qual = nullptr;
+        this->m_id = other.m_id;
+        this->m_idlen = other.m_idlen;
+        this->m_seqlen = other.m_seqlen;
+        this->m_field3len = other.m_field3len;
+        this->m_quallen = other.m_quallen;
+        other.clear();
     }
     return *this;
 }
 
+void FastqView::clear()
+{
+    this->m_id = nullptr;
+    this->m_idlen = 0L;
+    this->m_seqlen = 0L;
+    this->m_field3len = 0L;
+    this->m_quallen = 0L;
+}
+
 bool FastqView::isEmpty() const
 {
-    return ((this->m_id == nullptr) || (this->m_seq == nullptr) || (this->m_field3 == nullptr) || (this->m_qual == nullptr));
+    return ((this->m_id == nullptr));
 }
 
 int FastqView::cmp(const FastqView& other) const
 {
-    /*return strncmp(this->m_seq, other.m_seq,
-                   std::min(this->m_seqlen, other.m_seqlen));*/
     //if ((this->isEmpty()) || (other.isEmpty()))
         //throw std::runtime_error("Trying to compare an empty Fastq object!");
-    int res = strncmp(this->m_seq, other.m_seq,
+    int res = strncmp(this->seq(), other.seq(),
                       std::min(this->m_seqlen, other.m_seqlen));
     if ((res==0) && (this->m_seqlen < other.m_seqlen))
         return -1;
@@ -76,25 +88,28 @@ std::streamsize FastqView::read_new(char* start, char* stop)
     // search ID
     m_id = start;
     ptr = std::find(start, stop, '\n');
-    if (ptr == stop) { return -1; }
+    if (ptr == stop) { this->clear(); return -1; }
     m_idlen = ptr - start + 1;
+    ssize_t len_so_far = m_idlen;
     // search SEQ
-    m_seq = ++ptr;
-    ptr = std::find(m_seq, stop, '\n');
-    if (ptr == stop) { return -1; }
-    m_seqlen = ptr - m_seq + 1;
+    ++ptr;
+    ptr = std::find(ptr, stop, '\n');
+    if (ptr == stop) { this->clear(); return -1; }
+    m_seqlen = ptr - (start+len_so_far) + 1;
+    len_so_far += m_seqlen;
     // junk third string
-    m_field3 = ++ptr;
-    ptr = std::find(m_field3, stop, '\n');
-    if (ptr == stop) { return -1; }
-    m_field3len = ptr - m_field3 + 1;
+    ++ptr;
+    ptr = std::find(ptr, stop, '\n');
+    if (ptr == stop) { this->clear(); return -1; }
+    m_field3len = ptr - (start+len_so_far) + 1;
+    len_so_far += m_field3len;
     // quality
-    m_qual = ++ptr;
-    ptr = std::find(m_qual, stop, '\n');
-    if (ptr == stop) { m_qual = nullptr; return -1; }
-    m_quallen = ptr - m_qual + 1;
+    ++ptr;
+    ptr = std::find(ptr, stop, '\n');
+    if (ptr == stop) { this->clear(); return -1; }
+    m_quallen = ptr - (start+len_so_far) + 1;
     if (m_quallen != m_seqlen) { this->err_len_not_match(); }
-    return m_seqlen + m_idlen + m_field3len + m_quallen;
+    return len_so_far + m_quallen;
 }
 
 void FastqView::err_invalid_start(char* ptr)
@@ -107,9 +122,11 @@ void FastqView::err_invalid_start(char* ptr)
 void FastqView::err_len_not_match()
 {
     std::cerr << "Found sequence ";
-    std::cerr.write(m_seq, m_seqlen-1);
+    char* seq = this->m_id + this->m_idlen;
+    std::cerr.write(seq, m_seqlen-1);
     std::cerr <<" of length " << m_seqlen << " and quality string ";
-    std::cerr.write(m_qual, m_quallen-1);
+    char* qual = this->m_id + this->m_idlen + this->m_seqlen + this->m_field3len;
+    std::cerr.write(qual, m_quallen-1);
     std::cerr << " of length " << m_quallen << std::endl;
     throw std::runtime_error("Sequence and Quality fields of Fastq record should have the same length!"); 
 }

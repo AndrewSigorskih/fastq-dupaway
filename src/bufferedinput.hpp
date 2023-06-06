@@ -82,7 +82,7 @@ template <class T>
 T BufferedInput<T>::next()
 {
     T to_return = std::move(m_curobj);
-    if (!m_curobj.isEmpty()) { throw std::runtime_error("object not cleared"); } // TODO remove
+    //if (!m_curobj.isEmpty()) { throw std::runtime_error("object not cleared"); } // TODO remove
     std::streamsize new_size = m_curobj.read_new(m_buffer+m_curpos, m_buffer+m_cursize);
     if (new_size < 0)
     { // could not read another object

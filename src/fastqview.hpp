@@ -10,10 +10,11 @@ public:
     FastqView(const FastqView&);
     FastqView(FastqView&&);
     FastqView& operator=(FastqView&& other);
-    const char* seq() const { return m_seq; }
-    ssize_t seq_len() const { return m_seqlen; }
-    ssize_t size() const { return m_idlen+m_seqlen+m_field3len+m_quallen; }
+    void clear();
     bool isEmpty() const;
+    ssize_t size() const { return m_idlen+m_seqlen+m_field3len+m_quallen; }
+    ssize_t seq_len() const { return m_seqlen; }
+    const char* seq() const { return m_id + m_idlen; }
     int cmp(const FastqView& other) const;
     friend bool operator>(const FastqView& left, const FastqView& right);
     friend bool operator<(const FastqView& left, const FastqView& right);
@@ -24,10 +25,7 @@ private:
     void err_len_not_match();
 protected:
     char* m_id = nullptr;
-    char* m_seq = nullptr;
-    char* m_field3 = nullptr;
-    char* m_qual = nullptr;
-    std::streamsize m_idlen = 0, m_seqlen = 0, m_field3len = 0, m_quallen = 0;
+    ssize_t m_idlen = 0, m_seqlen = 0, m_field3len = 0, m_quallen = 0;
 };
 
 class FastqViewWithId : public FastqView
