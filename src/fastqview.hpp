@@ -8,6 +8,7 @@ class FastqView
 public:
     FastqView() {};
     FastqView(const FastqView&);
+    FastqView(FastqView&&);
     FastqView& operator=(FastqView&& other);
     const char* seq() const { return m_seq; }
     ssize_t seq_len() const { return m_seqlen; }

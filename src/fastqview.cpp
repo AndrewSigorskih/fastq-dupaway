@@ -8,6 +8,14 @@ FastqView::FastqView(const FastqView& other)
     this->m_qual = other.m_qual; this->m_quallen = other.m_quallen;
 }
 
+FastqView::FastqView(FastqView&& other)
+{
+    this->m_id = other.m_id; this->m_idlen = other.m_idlen; other.m_id=nullptr;
+    this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen; other.m_seq = nullptr;
+    this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len; other.m_field3 = nullptr;
+    this->m_qual = other.m_qual; this->m_quallen = other.m_quallen; other.m_qual = nullptr;
+}
+
 FastqView& FastqView::operator=(FastqView&& other)
 {
     if (this != &other)
