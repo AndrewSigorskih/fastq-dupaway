@@ -1,6 +1,13 @@
 #include "fastqview.hpp"
 
-// is it actually needed??
+FastqView::FastqView(const FastqView& other)
+{
+    this->m_id = other.m_id; this->m_idlen = other.m_idlen;
+    this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen;
+    this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len; 
+    this->m_qual = other.m_qual; this->m_quallen = other.m_quallen;
+}
+
 FastqView& FastqView::operator=(FastqView&& other)
 {
     if (this != &other)
