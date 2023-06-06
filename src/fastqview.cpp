@@ -1,24 +1,25 @@
 #include "fastqview.hpp"
 
 // is it actually needed??
-/*
 FastqView& FastqView::operator=(FastqView&& other)
 {
     if (this != &other)
     {
-        this->m_id = other.m_id; this->m_idlen = other.m_idlen;
-        this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen;
-        this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len;
-        this->m_qual = other.m_qual; this->m_quallen = other.m_quallen;
+        this->m_id = other.m_id; this->m_idlen = other.m_idlen; other.m_id=nullptr;
+        this->m_seq = other.m_seq; this->m_seqlen = other.m_seqlen; other.m_seq = nullptr;
+        this->m_field3 = other.m_field3; this->m_field3len = other.m_field3len; other.m_field3 = nullptr;
+        this->m_qual = other.m_qual; this->m_quallen = other.m_quallen; other.m_qual = nullptr;
     }
     return *this;
 }
-*/
+
 
 int FastqView::cmp(const FastqView& other) const
 {
     /*return strncmp(this->m_seq, other.m_seq,
                    std::min(this->m_seqlen, other.m_seqlen));*/
+    if ((this->m_seq == nullptr) || (other.m_seq==nullptr))
+        throw std::runtime_error("Trying to compare an empty Fastq object!");
     int res = strncmp(this->m_seq, other.m_seq,
                       std::min(this->m_seqlen, other.m_seqlen));
     if ((res==0) && (this->m_seqlen < other.m_seqlen))
@@ -40,6 +41,9 @@ bool operator<(const FastqView& left, const FastqView& right)
 
 std::ostream& operator<<(std::ostream& os, const FastqView& fq)
 {
+    // safety plug
+    if ((fq.m_id == nullptr) || (fq.m_seq == nullptr) || (fq.m_field3 == nullptr) || (fq.m_qual == nullptr))
+        throw std::runtime_error("Trying to write an empty Fastq object!");
     os.write(fq.m_id, fq.m_idlen+fq.m_seqlen+fq.m_field3len+fq.m_quallen);
     // TODO skip third field and only write "+\n"?
     return os;

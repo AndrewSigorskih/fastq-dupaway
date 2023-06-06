@@ -151,7 +151,9 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                 output2 << right;
             }
         }
-        left_buffer.refresh();
-        right_buffer.refresh();
+        if (left_buffer.block_end())
+            left_buffer.refresh();
+        if (right_buffer.block_end())
+            right_buffer.refresh();
     }
 }

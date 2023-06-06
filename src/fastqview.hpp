@@ -7,7 +7,7 @@ class FastqView
 {
 public:
     FastqView() {};
-    //FastqView& operator=(FastqView&& other);
+    FastqView& operator=(FastqView&& other);
     const char* seq() const { return m_seq; }
     ssize_t seq_len() const { return m_seqlen; }
     int cmp(const FastqView& other) const;
@@ -27,7 +27,7 @@ protected:
 };
 
 class FastqViewWithId : public FastqView
-{
+{ // TODO needs move assignment op
 public:
     int cmp(const FastqViewWithId& other) const;
     friend bool operator>(const FastqViewWithId& left, const FastqViewWithId& right);

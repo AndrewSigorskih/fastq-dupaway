@@ -120,6 +120,7 @@ void PairedExternalSorter<T>::sort_buckets(const char* infilename1,
     m_filesNum = 0;
     std::vector<RecordPair<T>> arr;
     // TODO arr.reserve???
+    // TODO memlimit / 3 or some close number
     BufferedInput<T> buffer1(m_memlimit / 2);
     BufferedInput<T> buffer2(m_memlimit / 2);
     buffer1.set_file(&input1);
@@ -149,8 +150,10 @@ void PairedExternalSorter<T>::sort_buckets(const char* infilename1,
         output2.close();
         // empty array and load new chunks of data
         arr.clear();
-        buffer1.refresh();
-        buffer2.refresh();
+        if (buffer1.block_end())
+            buffer1.refresh();
+        if (buffer2.block_end())
+            buffer2.refresh();
     }
 }
 
