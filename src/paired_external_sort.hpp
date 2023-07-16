@@ -147,8 +147,8 @@ void PairedExternalSorter<T>::sort_buckets(const char* infilename1,
         // sort objects
         std::sort(arr.begin(), arr.end());
         // save sorted chunks to paired files in tmp dir
-        boost::format outname1 = boost::format("%1%/%2%/%3%_1.tmp") % m_tempdir % (m_filesNum - 1);
-        boost::format outname2 = boost::format("%1%/%2%/%3%_2.tmp") % m_tempdir % (m_filesNum - 1);
+        boost::format outname1 = boost::format("%1%/%2%/%3%_1.tmp") % m_workdir % m_tempdir % (m_filesNum - 1);
+        boost::format outname2 = boost::format("%1%/%2%/%3%_2.tmp") % m_workdir % m_tempdir % (m_filesNum - 1);
         output1.open(outname1.str());
         output2.open(outname2.str());
         check_fstream_ok<std::ofstream>(output1, outname1.str().c_str());

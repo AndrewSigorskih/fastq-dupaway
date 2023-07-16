@@ -28,7 +28,7 @@ template <class T>
 class ExternalSorter
 {
 public:
-    ExternalSorter(ssize_t);
+    ExternalSorter(ssize_t, char*);
     ~ExternalSorter();
     void sort(const char*, const char*);
 private:
@@ -38,22 +38,34 @@ private:
     void reserve(ssize_t);
 private:
     ssize_t m_memlimit, m_filesNum;
-    char m_tempdir[constants::DIRNAME_LEN + 1];
+    char* m_tempdir;
+    char* m_workdir;
     std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
     std::vector<std::ifstream> m_inputs;
 };
 
 template <class T>
-ExternalSorter<T>::ExternalSorter(ssize_t memlimit)
+ExternalSorter<T>::ExternalSorter(ssize_t memlimit,
+                                  char* workdir)
 {
     m_memlimit = memlimit;
+    m_workdir = workdir;
+    m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
     m_tempdir[constants::DIRNAME_LEN] = '\0';
+    chdir(m_workdir);
     create_random_dir(m_tempdir, constants::DIRNAME_LEN);
+    chdir("..");
 }
 
 template <class T>
-ExternalSorter<T>::~ExternalSorter() { FS::remove_all(m_tempdir); }
+ExternalSorter<T>::~ExternalSorter() 
+{
+    chdir(m_workdir);
+    FS::remove_all(m_tempdir);
+    chdir("..");
+    free(m_tempdir);
+}
 
 template <class T>
 void ExternalSorter<T>::sort(const char* infilename,  
@@ -103,7 +115,7 @@ void ExternalSorter<T>::sort_buckets(const char* infilename)
         // sort objects
         std::sort(arr.begin(), arr.end());
         // save sorted chunk to file in tmp dir
-        boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (m_filesNum - 1);
+        boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % (m_filesNum - 1);
         output.open(fmt.str());
         check_fstream_ok<std::ofstream>(output, fmt.str().c_str());
         for (auto& item: arr)
@@ -125,7 +137,7 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
     filenames.reserve(filesCount);
     // set up files
     for (ssize_t i = 0; i < filesCount; ++i) {
-        boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (start+i);
+        boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % (start+i);
         filenames.push_back(fmt.str());
         m_inputs[i].open(filenames[i]);
         check_fstream_ok<std::ifstream>(m_inputs[i], filenames[i].c_str());
@@ -141,7 +153,7 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
     }
     // output file
     std::ofstream output;
-    boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % location;
+    boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % location;
     output.open(fmt.str());
     check_fstream_ok<std::ofstream>(output, fmt.str().c_str());
     // merge files iteratively
@@ -191,6 +203,6 @@ void ExternalSorter<T>::merge(const char* outfilename)
         mergeHelper(start, end, end+1);
         start = end + 1;
     }
-    boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % start;
+    boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % start;
     std::rename(fmt.str().c_str(), outfilename);
 }
