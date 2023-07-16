@@ -51,7 +51,7 @@ void SeqDupRemover<T>::filterSE(const string& infile,
     string sorted = (boost::format("%1%/data.sorted") % m_tempdir).str();
     string filtered = (boost::format("%1%/data.out") % m_tempdir).str();
     {   // sort input file in a scope so all buffers deallocate
-        ExternalSorter<T> sorter(m_memlimit);
+        ExternalSorter<T> sorter(m_memlimit, m_tempdir);
         sorter.sort(infilename.c_str(), sorted.c_str());
     }
     // deduplicate file
