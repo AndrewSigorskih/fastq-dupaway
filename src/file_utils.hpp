@@ -8,7 +8,6 @@
 #include <random>
 
 namespace FS = std::filesystem;
-const int DIRNAME_LEN = 10;
 
 void generate_random_name(char* buf, int len);
 void create_random_dir(char* buf, int len, uint n_tries = 100);

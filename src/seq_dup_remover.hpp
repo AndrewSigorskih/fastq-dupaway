@@ -14,10 +14,15 @@ public:
     SeqDupRemover(ssize_t memlimit, Comparator* comparator) : m_memlimit(memlimit)
     {
         m_comparator = comparator;
-        m_tempdir[DIRNAME_LEN] = '\0';
-        create_random_dir(m_tempdir, DIRNAME_LEN);
+        m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
+        m_tempdir[constants::DIRNAME_LEN] = '\0';
+        create_random_dir(m_tempdir, constants::DIRNAME_LEN);
     }
-    ~SeqDupRemover() { FS::remove_all(m_tempdir); }
+    ~SeqDupRemover()
+    {
+        FS::remove_all(m_tempdir);
+        free(m_tempdir);
+    }
     void filterSE(const string& infile,
                   const string& outfile);
     void filterPE(const string& infile1,
@@ -34,7 +39,7 @@ private:
 private:
     ssize_t m_memlimit;
     Comparator* m_comparator;
-    char m_tempdir[DIRNAME_LEN + 1];
+    char* m_tempdir;
 };
 
 template<class T>

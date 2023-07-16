@@ -38,7 +38,7 @@ private:
     void reserve(ssize_t);
 private:
     ssize_t m_memlimit, m_filesNum;
-    char m_tempdir[DIRNAME_LEN + 1];
+    char m_tempdir[constants::DIRNAME_LEN + 1];
     std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
     std::vector<std::ifstream> m_inputs;
@@ -48,8 +48,8 @@ template <class T>
 ExternalSorter<T>::ExternalSorter(ssize_t memlimit)
 {
     m_memlimit = memlimit;
-    m_tempdir[DIRNAME_LEN] = '\0';
-    create_random_dir(m_tempdir, DIRNAME_LEN);
+    m_tempdir[constants::DIRNAME_LEN] = '\0';
+    create_random_dir(m_tempdir, constants::DIRNAME_LEN);
 }
 
 template <class T>
@@ -89,8 +89,9 @@ void ExternalSorter<T>::sort_buckets(const char* infilename)
 
     m_filesNum = 0;
     std::vector<T> arr;
-    // TODO arr.reserve??? 
-    BufferedInput<T> buffer(m_memlimit);
+    // TODO arr.reserve???
+    // "view" objects take up to 1/3 of corresponding memory chunk
+    BufferedInput<T> buffer((m_memlimit / 3) * 2);
     buffer.set_file(&input);
     
     while(!buffer.eof())

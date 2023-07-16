@@ -62,7 +62,7 @@ private:
     void reserve(ssize_t);
 private:
     ssize_t m_memlimit, m_filesNum;
-    char m_tempdir[DIRNAME_LEN + 1];
+    char m_tempdir[constants::DIRNAME_LEN + 1];
     std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
     std::vector<std::ifstream> m_inputs;
@@ -72,8 +72,8 @@ template <class T>
 PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit)
 {
     m_memlimit = memlimit;
-    m_tempdir[DIRNAME_LEN] = '\0';
-    create_random_dir(m_tempdir, DIRNAME_LEN);
+    m_tempdir[constants::DIRNAME_LEN] = '\0';
+    create_random_dir(m_tempdir, constants::DIRNAME_LEN);
 }
 
 template <class T>
@@ -120,9 +120,9 @@ void PairedExternalSorter<T>::sort_buckets(const char* infilename1,
     m_filesNum = 0;
     std::vector<RecordPair<T>> arr;
     // TODO arr.reserve???
-    // TODO memlimit / 3 or some close number
-    BufferedInput<T> buffer1(m_memlimit / 2);
-    BufferedInput<T> buffer2(m_memlimit / 2);
+    // "view" objects take up to 1/3 of corresponding memory chunk
+    BufferedInput<T> buffer1(m_memlimit / 3);
+    BufferedInput<T> buffer2(m_memlimit / 3);
     buffer1.set_file(&input1);
     buffer2.set_file(&input2);
 
@@ -161,14 +161,18 @@ void PairedExternalSorter<T>::mergeHelper(ssize_t start,
                                           ssize_t location)
 {
     ssize_t filesCount = end - start;
+    std::vector<std::string> filenames;
+    filenames.reserve(filesCount*2);
     // set up files
     for (ssize_t i = 0; i < filesCount; ++i) {
         boost::format inpname1 = boost::format("%1%/%2%_1.tmp") % m_tempdir % (start+i);
         boost::format inpname2 = boost::format("%1%/%2%_2.tmp") % m_tempdir % (start+i);
-        m_inputs[2*i].open(inpname1.str());
-        m_inputs[2*i+1].open(inpname2.str());
-        check_fstream_ok<std::ifstream>(m_inputs[2*i], inpname1.str().c_str());
-        check_fstream_ok<std::ifstream>(m_inputs[2*i+1], inpname2.str().c_str());
+        filenames.push_back(inpname1.str());
+        filenames.push_back(inpname2.str());
+        m_inputs[2*i].open(filenames[2*i]);
+        m_inputs[2*i+1].open(filenames[2*i+1]);
+        check_fstream_ok<std::ifstream>(m_inputs[2*i], filenames[2*i].c_str());
+        check_fstream_ok<std::ifstream>(m_inputs[2*i+1], filenames[2*i+1].c_str());
         m_buffers[2*i].set_file(&(m_inputs[2*i]));
         m_buffers[2*i+1].set_file(&(m_inputs[2*i+1]));
     }
@@ -213,6 +217,8 @@ void PairedExternalSorter<T>::mergeHelper(ssize_t start,
     }
     output1.close();
     output2.close();
+    for (auto& name: filenames)
+        FS::remove(name.c_str());
 }
 
 template <class T>
