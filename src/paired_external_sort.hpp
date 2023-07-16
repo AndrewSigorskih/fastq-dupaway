@@ -79,7 +79,7 @@ PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit,
     m_tempdir[constants::DIRNAME_LEN] = '\0';
     chdir(m_workdir);
     create_random_dir(m_tempdir, constants::DIRNAME_LEN);
-    chdir('..');
+    chdir("..");
 }
 
 template <class T>
@@ -87,7 +87,7 @@ PairedExternalSorter<T>::~PairedExternalSorter()
 {
     chdir(m_workdir);
     FS::remove_all(m_tempdir);
-    chdir('..');
+    chdir("..");
     free(m_tempdir);
 }
 

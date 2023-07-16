@@ -127,7 +127,7 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
     for (ssize_t i = 0; i < filesCount; ++i) {
         boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (start+i);
         filenames.push_back(fmt.str());
-        m_inputs[i].open(filenames[i].str());
+        m_inputs[i].open(filenames[i]);
         check_fstream_ok<std::ifstream>(m_inputs[i], filenames[i].c_str());
         m_buffers[i].set_file(&(m_inputs[i]));
     }

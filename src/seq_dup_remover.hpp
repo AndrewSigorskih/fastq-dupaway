@@ -104,7 +104,7 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
     string filtered1 = (boost::format("%1%/data.out1") % m_tempdir).str();
     string filtered2 = (boost::format("%1%/data.out2") % m_tempdir).str();
     {
-        PairedExternalSorter<T> sorter(m_memlimit);
+        PairedExternalSorter<T> sorter(m_memlimit, m_tempdir);
         sorter.sort(infilename1.c_str(), infilename2.c_str(),
                     sorted1.c_str(), sorted2.c_str());
     }
