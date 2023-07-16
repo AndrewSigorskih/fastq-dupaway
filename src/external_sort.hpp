@@ -121,11 +121,14 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
                                     ssize_t location)
 {
     ssize_t filesCount = end - start;
+    std::vector<std::string> filenames;
+    filenames.reserve(filesCount);
     // set up files
     for (ssize_t i = 0; i < filesCount; ++i) {
         boost::format fmt = boost::format("%1%/%2%.tmp") % m_tempdir % (start+i);
-        m_inputs[i].open(fmt.str());
-        check_fstream_ok<std::ifstream>(m_inputs[i], fmt.str().c_str());
+        filenames.push_back(fmt.str());
+        m_inputs[i].open(filenames[i].str());
+        check_fstream_ok<std::ifstream>(m_inputs[i], filenames[i].c_str());
         m_buffers[i].set_file(&(m_inputs[i]));
     }
     // initially fill up queue
@@ -160,6 +163,8 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
         m_buffers[i].unset_file();
     }
     output.close();
+    for (auto& name: filenames)
+        FS::remove(name.c_str());
 }
 
 template <class T>

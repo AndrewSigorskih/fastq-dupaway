@@ -52,7 +52,7 @@ template <class T>
 class PairedExternalSorter
 {
 public:
-    PairedExternalSorter(ssize_t);
+    PairedExternalSorter(ssize_t, char*);
     ~PairedExternalSorter();
     void sort(const char*, const char*, const char*, const char*);
 private:
@@ -62,22 +62,34 @@ private:
     void reserve(ssize_t);
 private:
     ssize_t m_memlimit, m_filesNum;
-    char m_tempdir[constants::DIRNAME_LEN + 1];
+    char* m_tempdir;
+    char* m_workdir;
     std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
     std::vector<std::ifstream> m_inputs;
 };
 
 template <class T>
-PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit)
+PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit,
+                                              char* workdir)
 {
     m_memlimit = memlimit;
+    m_workdir = workdir;
+    m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
     m_tempdir[constants::DIRNAME_LEN] = '\0';
+    chdir(m_workdir);
     create_random_dir(m_tempdir, constants::DIRNAME_LEN);
+    chdir('..');
 }
 
 template <class T>
-PairedExternalSorter<T>::~PairedExternalSorter() { FS::remove_all(m_tempdir); }
+PairedExternalSorter<T>::~PairedExternalSorter()
+{
+    chdir(m_workdir);
+    FS::remove_all(m_tempdir);
+    chdir('..');
+    free(m_tempdir);
+}
 
 template <class T>
 void PairedExternalSorter<T>::sort(const char* infilename1,
@@ -135,8 +147,8 @@ void PairedExternalSorter<T>::sort_buckets(const char* infilename1,
         // sort objects
         std::sort(arr.begin(), arr.end());
         // save sorted chunks to paired files in tmp dir
-        boost::format outname1 = boost::format("%1%/%2%_1.tmp") % m_tempdir % (m_filesNum - 1);
-        boost::format outname2 = boost::format("%1%/%2%_2.tmp") % m_tempdir % (m_filesNum - 1);
+        boost::format outname1 = boost::format("%1%/%2%/%3%_1.tmp") % m_tempdir % (m_filesNum - 1);
+        boost::format outname2 = boost::format("%1%/%2%/%3%_2.tmp") % m_tempdir % (m_filesNum - 1);
         output1.open(outname1.str());
         output2.open(outname2.str());
         check_fstream_ok<std::ofstream>(output1, outname1.str().c_str());
@@ -165,8 +177,8 @@ void PairedExternalSorter<T>::mergeHelper(ssize_t start,
     filenames.reserve(filesCount*2);
     // set up files
     for (ssize_t i = 0; i < filesCount; ++i) {
-        boost::format inpname1 = boost::format("%1%/%2%_1.tmp") % m_tempdir % (start+i);
-        boost::format inpname2 = boost::format("%1%/%2%_2.tmp") % m_tempdir % (start+i);
+        boost::format inpname1 = boost::format("%1%/%2%/%3%_1.tmp") % m_workdir % m_tempdir % (start+i);
+        boost::format inpname2 = boost::format("%1%/%2%/%3%_2.tmp") % m_workdir % m_tempdir % (start+i);
         filenames.push_back(inpname1.str());
         filenames.push_back(inpname2.str());
         m_inputs[2*i].open(filenames[2*i]);
@@ -186,8 +198,8 @@ void PairedExternalSorter<T>::mergeHelper(ssize_t start,
     }
     // output files
     std::ofstream output1, output2;
-    boost::format outname1 = boost::format("%1%/%2%_1.tmp") % m_tempdir % location;
-    boost::format outname2 = boost::format("%1%/%2%_2.tmp") % m_tempdir % location;
+    boost::format outname1 = boost::format("%1%/%2%/%3%_1.tmp") % m_workdir % m_tempdir % location;
+    boost::format outname2 = boost::format("%1%/%2%/%3%_2.tmp") % m_workdir % m_tempdir % location;
     output1.open(outname1.str());
     output2.open(outname2.str());
     check_fstream_ok<std::ofstream>(output1, outname1.str().c_str());
@@ -246,8 +258,8 @@ void PairedExternalSorter<T>::merge(const char* outfilename1,
         mergeHelper(start, end, end+1);
         start = end + 1;
     }
-    boost::format name1 = boost::format("%1%/%2%_1.tmp") % m_tempdir % start;
-    boost::format name2 = boost::format("%1%/%2%_2.tmp") % m_tempdir % start;
+    boost::format name1 = boost::format("%1%/%2%/%3%_1.tmp") % m_workdir % m_tempdir % start;
+    boost::format name2 = boost::format("%1%/%2%/%3%_2.tmp") % m_workdir % m_tempdir % start;
     std::rename(name1.str().c_str(), outfilename1);
     std::rename(name2.str().c_str(), outfilename2);
 }
