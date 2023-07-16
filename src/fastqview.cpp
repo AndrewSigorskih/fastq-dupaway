@@ -51,6 +51,7 @@ int FastqView::cmp(const FastqView& other) const
 {
     //if ((this->isEmpty()) || (other.isEmpty()))
         //throw std::runtime_error("Trying to compare an empty Fastq object!");
+    // TODO add RK hashing shortcut for first 20 leters ?
     int res = strncmp(this->seq(), other.seq(),
                       std::min(this->m_seqlen, other.m_seqlen));
     if ((res==0) && (this->m_seqlen < other.m_seqlen))

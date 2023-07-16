@@ -19,7 +19,6 @@ struct RecordPair
     RecordPair(const T& first, const T& second) : left(first), right(second) {}
     bool operator<(const RecordPair& other) const
     {
-        //return (this->left < other.left) && (this->right < other.right);
         int val = this->left.cmp(other.left);
         if (val < 0) return true;
         if (val > 0) return false;
@@ -27,7 +26,6 @@ struct RecordPair
     }
     bool operator>(const RecordPair& other) const
     {
-        //return (this->left > other.left) && (this->right > other.right);
         int val = this->left.cmp(other.left);
         if (val > 0) return true;
         if (val < 0) return false;
@@ -60,6 +58,7 @@ private:
     void mergeHelper(ssize_t, ssize_t, ssize_t);
     void merge(const char*, const char*);
     void reserve(ssize_t);
+    void saveOutput(ssize_t, const char*, const char*);
 private:
     ssize_t m_memlimit, m_filesNum;
     char* m_tempdir;
@@ -237,9 +236,23 @@ template <class T>
 void PairedExternalSorter<T>::merge(const char* outfilename1,
                                     const char* outfilename2)
 {
+    if (m_filesNum == 1)
+    {// whole file was processed in a single chunk
+        this->saveOutput(0, outfilename1, outfilename2);
+        return;
+    }
+
     ssize_t start = 0, end = m_filesNum, step = 50L;
+    //if (step > end-start)
+        //step = (end - start + 1) / 2 + 1;
     if (step > end-start)
-        step = (end - start + 1) / 2 + 1;
+    {// can merge all files in one cycle
+        this->reserve(m_filesNum);
+        mergeHelper(start, end, end);
+        this->saveOutput(end, outfilename1, outfilename2);
+        return;
+    }
+    // unlucky case: several cycles needed
     // reserve needed memory
     this->reserve(step);
     // actual file merging loop
@@ -258,8 +271,17 @@ void PairedExternalSorter<T>::merge(const char* outfilename1,
         mergeHelper(start, end, end+1);
         start = end + 1;
     }
-    boost::format name1 = boost::format("%1%/%2%/%3%_1.tmp") % m_workdir % m_tempdir % start;
-    boost::format name2 = boost::format("%1%/%2%/%3%_2.tmp") % m_workdir % m_tempdir % start;
+
+    this->saveOutput(start, outfilename1, outfilename2);
+}
+
+template <class T>
+void PairedExternalSorter<T>::saveOutput(ssize_t idx,
+                                         const char* outfilename1,
+                                         const char* outfilename2)
+{
+    boost::format name1 = boost::format("%1%/%2%/%3%_1.tmp") % m_workdir % m_tempdir % idx;
+    boost::format name2 = boost::format("%1%/%2%/%3%_2.tmp") % m_workdir % m_tempdir % idx;
     std::rename(name1.str().c_str(), outfilename1);
     std::rename(name2.str().c_str(), outfilename2);
 }
