@@ -173,7 +173,7 @@ int FastqViewWithPreHash::cmp(const FastqViewWithPreHash& other) const
     {
         int res = SeqUtils::seqncmp(this->seq(),
                                     other.seq(),
-                                    std::min(this->m_seqlen, other.m_seqlen));
+                                    std::min(this->m_seqlen-1, other.m_seqlen-1));
         if ((res == 0) && (this->m_seqlen < other.m_seqlen))
             return -1;
         if ((res == 0) && (this->m_seqlen > other.m_seqlen))
