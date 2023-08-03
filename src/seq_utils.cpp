@@ -14,7 +14,8 @@ inline int SeqUtils::_char2number(char c)
         case 'T':
             return 3;
         default:
-            throw std::runtime_error("Unknown character in DNA sequence!");
+            std::cerr << "Error: unknown character in DNA sequence: " << c << '\n';
+            throw std::runtime_error("Supported sequences character set: {A, N, C, G, T}!");
     }
 }
 
