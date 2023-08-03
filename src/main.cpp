@@ -2,12 +2,11 @@
 #include <iostream>
 #include <string>
 
-#include "constants.h"
+#include "constants.hpp"
 #include "comparator.hpp"
 #include "fastqview.hpp"
 #include "seq_dup_remover.hpp"
 
-//#include "fastq.hpp"
 //#include "hash_dup_remover.hpp"
 
 using std::string;
@@ -131,23 +130,35 @@ int main(int argc, char** argv)
     // actual logic
     // TODO finish hash-based dup remover and id-sorted object-view classes
     // TODO: implement fasta support
-    // TODO: implement gzipped files support
+    // TODO: implement gzipped files support : create tmp dir here and gunzip files to 
+    // it before everythong else?
 
-    Comparator* comp = nullptr;
+    // update hashing len parameter
+    if (opts.mode & Modes::FASTA)
+    {
+        std::cerr << "Fasta file support is not properly implemented yet!\n";
+    } else { // fastq
+        BufferedInput<FastqView> buf(opts.memLimit);
+        getMinPrefixLen<FastqView>(opts.input_1.c_str(), &buf);
+        if (opts.input_2.size() > 0)
+            getMinPrefixLen<FastqView>(opts.input_2.c_str(), &buf);
+    }
+
+    std::cerr << "Updated PREFIX_LEN parameter: " << params::PREFIX_LEN << '\n';
 
     try {
         if (opts.mode == Modes::BASE) {
             std:: cout << "seq, single, fastq\n";
-            comp = new Comparator(false);
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
+            Comparator comp(false);
+            SeqDupRemover<FastqViewWithPreHash> remover(opts.memLimit, &comp);
             remover.filterSE(opts.input_1, opts.output_1);
         } else if (opts.mode == Modes::FASTA) {
             std::cout << "seq, single, fasta\n";
             std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
-            comp = new Comparator(true);
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
+            Comparator comp(true);
+            SeqDupRemover<FastqViewWithPreHash> remover(opts.memLimit, &comp);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
@@ -172,9 +183,6 @@ int main(int argc, char** argv)
         std::cerr << "An error occured:\n";
         std::cerr << exc.what() << '\n';
     }
-
-    if (comp)
-        delete comp;
     
     return 0;
 }

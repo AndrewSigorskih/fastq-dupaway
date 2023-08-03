@@ -3,6 +3,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "seq_utils.hpp"
+
 class FastqView
 {
 public:
@@ -25,15 +27,26 @@ private:
     void err_len_not_match();
 protected:
     char* m_id = nullptr;
-    ssize_t m_idlen = 0, m_seqlen = 0, m_field3len = 0, m_quallen = 0;
+    ssize_t m_idlen = 0L, m_seqlen = 0L, m_field3len = 0L, m_quallen = 0L;
+};
+
+class FastqViewWithPreHash : public FastqView
+{
+public:
+    FastqViewWithPreHash() {};
+    FastqViewWithPreHash(const FastqViewWithPreHash&);
+    FastqViewWithPreHash(FastqViewWithPreHash&&);
+    FastqViewWithPreHash& operator=(FastqViewWithPreHash&& other);
+    int cmp(const FastqViewWithPreHash& other) const;
+    std::streamsize read_new(char*, char*);
+private:
+    uint64_t m_hash = 0UL;
 };
 
 class FastqViewWithId : public FastqView
-{ // TODO needs move assignment op
+{ // TODO needs copy and move semantics added!
 public:
     int cmp(const FastqViewWithId& other) const;
-    friend bool operator>(const FastqViewWithId& left, const FastqViewWithId& right);
-    friend bool operator<(const FastqViewWithId& left, const FastqViewWithId& right);
     std::streamsize read_new(char*, char*);
 private:
     char* m_idtag = nullptr;

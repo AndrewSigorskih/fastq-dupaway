@@ -1,5 +1,7 @@
 #pragma once
 #include <fstream>
+#include "constants.hpp"
+#include "file_utils.hpp"
 
 template <class T>
 class BufferedInput
@@ -91,4 +93,27 @@ T BufferedInput<T>::next()
         m_curpos += new_size;
     }
     return to_return;
+}
+
+template <class T>
+void getMinPrefixLen(const char* filename, BufferedInput<T>* buffer)
+{
+    std::ifstream input{filename};
+    check_fstream_ok<std::ifstream>(input, filename);
+
+    T obj;
+    buffer->set_file(&input);
+    obj = buffer->next();
+
+    while (!buffer->eof())
+    {
+        while (!buffer->block_end())
+        {
+            if (obj.seq_len() < params::PREFIX_LEN)
+                params::PREFIX_LEN = obj.seq_len();
+            obj = buffer->next();
+        }
+        buffer->refresh();
+    }
+    buffer->unset_file();
 }

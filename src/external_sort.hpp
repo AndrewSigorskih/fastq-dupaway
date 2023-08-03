@@ -6,7 +6,7 @@
 #include <queue>
 #include <vector>
 
-#include "constants.h"
+#include "constants.hpp"
 #include "bufferedinput.hpp"
 #include "file_utils.hpp"
 
