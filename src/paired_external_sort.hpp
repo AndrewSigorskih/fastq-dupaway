@@ -76,17 +76,17 @@ PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit,
     m_workdir = workdir;
     m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
     m_tempdir[constants::DIRNAME_LEN] = '\0';
-    chdir(m_workdir);
+    std::ignore = chdir(m_workdir);
     create_random_dir(m_tempdir, constants::DIRNAME_LEN);
-    chdir("..");
+    std::ignore = chdir("..");
 }
 
 template <class T>
 PairedExternalSorter<T>::~PairedExternalSorter()
 {
-    chdir(m_workdir);
+    std::ignore = chdir(m_workdir);
     FS::remove_all(m_tempdir);
-    chdir("..");
+    std::ignore = chdir("..");
     free(m_tempdir);
 }
 

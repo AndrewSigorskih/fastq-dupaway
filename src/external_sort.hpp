@@ -53,17 +53,17 @@ ExternalSorter<T>::ExternalSorter(ssize_t memlimit,
     m_workdir = workdir;
     m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
     m_tempdir[constants::DIRNAME_LEN] = '\0';
-    chdir(m_workdir);
+    std::ignore = chdir(m_workdir);
     create_random_dir(m_tempdir, constants::DIRNAME_LEN);
-    chdir("..");
+    std::ignore = chdir("..");
 }
 
 template <class T>
 ExternalSorter<T>::~ExternalSorter() 
 {
-    chdir(m_workdir);
+    std::ignore = chdir(m_workdir);
     FS::remove_all(m_tempdir);
-    chdir("..");
+    std::ignore = chdir("..");
     free(m_tempdir);
 }
 
@@ -101,7 +101,6 @@ void ExternalSorter<T>::sort_buckets(const char* infilename)
 
     m_filesNum = 0;
     std::vector<T> arr;
-    // TODO arr.reserve???
     // "view" objects take up to 1/3 of corresponding memory chunk
     BufferedInput<T> buffer((m_memlimit / 3) * 2);
     buffer.set_file(&input);

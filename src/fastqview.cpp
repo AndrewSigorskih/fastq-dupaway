@@ -184,10 +184,21 @@ int FastqViewWithPreHash::cmp(const FastqViewWithPreHash& other) const
     return 0;
 }
 
+bool operator>(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right)
+{
+    return (left.cmp(right) > 0);
+}
+
+bool operator<(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right)
+{
+    return (left.cmp(right) < 0);
+}
+
 std::streamsize FastqViewWithPreHash::read_new(char* start, char* stop)
 {
     std::streamsize size = FastqView::read_new(start, stop);
-    this->m_hash = SeqUtils::pattern2number(this->seq(), params::PREFIX_LEN);
+    if (size > 0)
+        this->m_hash = SeqUtils::pattern2number(this->seq(), params::PREFIX_LEN);
     return size;
 }
 
