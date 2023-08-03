@@ -15,7 +15,7 @@ inline int SeqUtils::_char2number(char c)
             return 3;
         default:
             std::cerr << "Error: unknown character in DNA sequence: " << c << '\n';
-            throw std::runtime_error("Supported sequences character set: {A, N, C, G, T}!");
+            throw std::runtime_error("Supported sequence character set: {A, N, C, G, T}!");
     }
 }
 

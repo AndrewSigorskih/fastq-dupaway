@@ -109,8 +109,8 @@ void getMinPrefixLen(const char* filename, BufferedInput<T>* buffer)
     {
         while (!buffer->block_end())
         {
-            if (obj.seq_len() < params::PREFIX_LEN)
-                params::PREFIX_LEN = obj.seq_len();
+            if (obj.seq_len()-1 < params::PREFIX_LEN)
+                params::PREFIX_LEN = obj.seq_len()-1;
             obj = buffer->next();
         }
         buffer->refresh();
