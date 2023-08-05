@@ -40,6 +40,7 @@ public:
     friend bool operator>(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right);
     friend bool operator<(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right);
     std::streamsize read_new(char*, char*);
+    uint64_t pref_hash() const { return m_hash; }
 private:
     uint64_t m_hash = 0UL;
 };

@@ -134,6 +134,7 @@ int main(int argc, char** argv)
     // it before everythong else?
 
     // update hashing len parameter
+    /*
     if (opts.mode & Modes::FASTA)
     {
         std::cerr << "Fasta file support is not properly implemented yet!\n";
@@ -143,14 +144,14 @@ int main(int argc, char** argv)
         if (opts.input_2.size() > 0)
             getMinPrefixLen<FastqView>(opts.input_2.c_str(), &buf);
     }
-
+    */
     std::cerr << "Updated PREFIX_LEN parameter: " << params::PREFIX_LEN << '\n';
 
     try {
         if (opts.mode == Modes::BASE) {
             std:: cout << "seq, single, fastq\n";
             Comparator comp(false);
-            SeqDupRemover<FastqViewWithPreHash> remover(opts.memLimit, &comp);
+            SeqDupRemover<FastqView> remover(opts.memLimit, &comp);
             remover.filterSE(opts.input_1, opts.output_1);
         } else if (opts.mode == Modes::FASTA) {
             std::cout << "seq, single, fasta\n";
@@ -158,7 +159,7 @@ int main(int argc, char** argv)
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
             Comparator comp(true);
-            SeqDupRemover<FastqViewWithPreHash> remover(opts.memLimit, &comp);
+            SeqDupRemover<FastqView> remover(opts.memLimit, &comp);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
