@@ -49,6 +49,8 @@ class FastqViewWithId : public FastqView
 { // TODO needs copy and move semantics added! also comparison operator overloads
 public:
     int cmp(const FastqViewWithId& other) const;
+    friend bool operator>(const FastqViewWithId& left, const FastqViewWithId& right);
+    friend bool operator<(const FastqViewWithId& left, const FastqViewWithId& right);
     std::streamsize read_new(char*, char*);
 private:
     char* m_idtag = nullptr;

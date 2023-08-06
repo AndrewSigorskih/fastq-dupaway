@@ -11,7 +11,7 @@ template<class T>
 class SeqDupRemover
 {
 public:
-    SeqDupRemover(ssize_t memlimit, Comparator* comparator) : m_memlimit(memlimit)
+    SeqDupRemover(ssize_t memlimit, BaseComparator* comparator) : m_memlimit(memlimit)
     {
         m_comparator = comparator;
         m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
@@ -38,7 +38,7 @@ private:
                        const char* outfile2);
 private:
     ssize_t m_memlimit;
-    Comparator* m_comparator;
+    BaseComparator* m_comparator;
     char* m_tempdir;
 };
 

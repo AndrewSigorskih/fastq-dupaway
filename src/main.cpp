@@ -30,6 +30,7 @@ struct Options
     Modes mode = Modes::BASE;
     ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
+    ComparatorType ctype = ComparatorType::CT_TIGHT;
 };
 
 bool parse_args(int argc, char** argv, Options& opts)
@@ -50,6 +51,11 @@ bool parse_args(int argc, char** argv, Options& opts)
                                               "The hashtable-based deduplication mode does not support strict memory limitation,\n"
                                               "but will most likely not exceed upper bound.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta")
+        ("compare-seq", po::value<string>(), "Sequence comparison mode for deduplication step.\n"
+                                             "Supported options:\n"
+                                             "\ttight (default): compare sequences directly, sequences of different lengths are considered different.\n"
+                                             "\t loose:  compare sequences directly, sequences of different lengths are considered duplicates if shorter"
+                                             " sequence exactly matches with prefix of longer sequence.\n")
         ("hashed", po::bool_switch(&hash_opt), "[This option is subject to change soon] Use hash-based approach instead of sequence-based.")
         ;
         // Parse command line arguments
@@ -80,6 +86,18 @@ bool parse_args(int argc, char** argv, Options& opts)
                 opts.mode = (opts.mode | Modes::FASTA);
             else
                 throw std::runtime_error("Only \"fastq\" or \"fasta\" file formats are supported!");
+        }
+
+        // comparator type
+        if (vm.count("compare-seq"))
+        {
+            string value = vm["compare-seq"].as<string>();
+            if (value == "tight")
+                ;
+            else if (value == "loose")
+                opts.ctype = ComparatorType::CT_LOOSE;
+            else
+                throw std::runtime_error("Unsupported compare-seq type provided!");
         }
 
         // seq-based or hash-based
@@ -144,22 +162,23 @@ int main(int argc, char** argv)
         if (opts.input_2.size() > 0)
             getMinPrefixLen<FastqView>(opts.input_2.c_str(), &buf);
     }
-    */
     std::cerr << "Updated PREFIX_LEN parameter: " << params::PREFIX_LEN << '\n';
-
+    */
+   
     try {
+        BaseComparator* comp = makeComparator(opts.ctype, 
+                                             (opts.input_2.size() > 0));
+
         if (opts.mode == Modes::BASE) {
             std:: cout << "seq, single, fastq\n";
-            Comparator comp(false);
-            SeqDupRemover<FastqView> remover(opts.memLimit, &comp);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
             remover.filterSE(opts.input_1, opts.output_1);
         } else if (opts.mode == Modes::FASTA) {
             std::cout << "seq, single, fasta\n";
             std::cerr << "This mode is not properly implemented yet!\n";
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
-            Comparator comp(true);
-            SeqDupRemover<FastqView> remover(opts.memLimit, &comp);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
@@ -180,10 +199,13 @@ int main(int argc, char** argv)
         } else {
             std::cerr << "Unknown mode!!!\n";
         }
+
+        delete comp;
+
     } catch (const std::exception& exc) {
         std::cerr << "An error occured:\n";
         std::cerr << exc.what() << '\n';
     }
-    
+
     return 0;
 }

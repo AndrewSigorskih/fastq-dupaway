@@ -4,20 +4,47 @@
 #include <cstring>
 #include <stdexcept>
 
+#include <iostream> // delete this!
+
 const ssize_t STARTING_SEQ_SIZE = 150L;
 
-class Comparator
+enum ComparatorType
+{
+    CT_TIGHT,
+    CT_LOOSE
+};
+
+class BaseComparator
 {
 public:
-    Comparator(bool);
-    ~Comparator();
+    BaseComparator(bool);
+    virtual ~BaseComparator();
     void set_seq(const char*, ssize_t);
     void set_seq(const char*, ssize_t, const char*, ssize_t);
-    bool compare(const char*, ssize_t);
-    bool compare(const char*, ssize_t, const char*, ssize_t);
-private:
+    virtual bool compare(const char*, ssize_t) = 0;
+    virtual bool compare(const char*, ssize_t, const char*, ssize_t) = 0;
+protected:
     char* m_buf_1 = nullptr;
     char* m_buf_2 = nullptr;
     ssize_t m_len_1 = 0, m_len_2 = 0;
     ssize_t m_capacity_1 = 0, m_capacity_2 = 0;
 };
+
+class TightComparator : public BaseComparator
+{
+public:
+    using BaseComparator::BaseComparator; // inherit constructor(s)
+    bool compare(const char*, ssize_t);
+    bool compare(const char*, ssize_t, const char*, ssize_t);
+};
+
+class LooseComparator : public BaseComparator
+{
+public:
+    using BaseComparator::BaseComparator;
+    bool compare(const char*, ssize_t);
+    bool compare(const char*, ssize_t, const char*, ssize_t);
+};
+
+// comparator factory
+BaseComparator* makeComparator(ComparatorType, bool);

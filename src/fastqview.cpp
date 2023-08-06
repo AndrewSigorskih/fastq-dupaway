@@ -210,14 +210,31 @@ std::streamsize FastqViewWithPreHash::read_new(char* start, char* stop)
 
 int FastqViewWithId::cmp(const FastqViewWithId& other) const
 {
-    // TODO change this cmp as well
-    return strncmp(this->m_idtag, other.m_idtag,
+    int res = strncmp(this->m_idtag, other.m_idtag,
                    std::min(this->m_idtag_len, other.m_idtag_len));
+
+    if ((res==0) && (this->m_idtag_len < other.m_idtag_len))
+        return -1;
+    if ((res==0) && (this->m_idtag_len > other.m_idtag_len))
+        return 1;
+    return res;
+}
+
+bool operator>(const FastqViewWithId& left, const FastqViewWithId& right)
+{
+    return (left.cmp(right) > 0);
+}
+
+bool operator<(const FastqViewWithId& left, const FastqViewWithId& right)
+{
+    return (left.cmp(right) < 0);
 }
 
 std::streamsize FastqViewWithId::read_new(char* start, char* stop)
 {
     std::streamsize size = FastqView::read_new(start, stop);
+    if (size <= 0)
+        return -1;
     char* ptr;
     ptr = std::find(m_id, m_id+m_idlen, '.');
     if (ptr == m_id+m_idlen)  // id in a form of "@XXXXX some_text"
