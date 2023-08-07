@@ -148,7 +148,6 @@ int main(int argc, char** argv)
 
     std:: cout << "mem limit: " << opts.memLimit << '\n';
     // actual logic
-    // TODO finish hash-based dup remover and id-sorted object-view classes
     // TODO: implement fasta support
     // TODO: implement gzipped files support : create tmp dir here and gunzip files to 
     // it before everythong else?
@@ -197,7 +196,7 @@ int main(int argc, char** argv)
             std::cerr << "This mode is not properly implemented yet!\n";
 
         } else {
-            std::cerr << "Unknown mode!!!\n";
+            std::cerr << "Unknown mode!\n";
         }
 
         if (comp)

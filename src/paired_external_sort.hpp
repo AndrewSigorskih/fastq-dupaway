@@ -243,12 +243,11 @@ void PairedExternalSorter<T>::merge(const char* outfilename1,
     }
 
     ssize_t start = 0, end = m_filesNum, step = 50L;
-    //if (step > end-start)
-        //step = (end - start + 1) / 2 + 1;
+
     if (step > end-start)
     {// can merge all files in one cycle
         this->reserve(m_filesNum);
-        mergeHelper(start, end, end);
+        this->mergeHelper(start, end, end);
         this->saveOutput(end, outfilename1, outfilename2);
         return;
     }
@@ -262,13 +261,13 @@ void PairedExternalSorter<T>::merge(const char* outfilename1,
         ssize_t mid = start + dist;
         if (mid > end) 
             break;
-        mergeHelper(start, mid, location);
+        this->mergeHelper(start, mid, location);
         ++end;
         start = mid;
     }
     if (start < end-1)
     { // one last run
-        mergeHelper(start, end, end+1);
+        this->mergeHelper(start, end, end+1);
         start = end + 1;
     }
 

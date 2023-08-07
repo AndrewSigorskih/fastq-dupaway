@@ -36,6 +36,7 @@ private:
     void mergeHelper(ssize_t, ssize_t, ssize_t);
     void merge(const char*);
     void reserve(ssize_t);
+    void saveOutput(ssize_t, const char*);
 private:
     ssize_t m_memlimit, m_filesNum;
     char* m_tempdir;
@@ -181,9 +182,23 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
 template <class T>
 void ExternalSorter<T>::merge(const char* outfilename)
 {
+    if (m_filesNum == 1)
+    {// whole file was processed in a single chunk
+        this->saveOutput(0, outfilename);
+        return;
+    }
+
     ssize_t start = 0, end = m_filesNum, step = 100L;
+
     if (step > end-start)
-        step = (end - start + 1) / 2 + 1;
+    {// can merge all files in one cycle
+        this->reserve(m_filesNum);
+        this->mergeHelper(start, end, end);
+        this->saveOutput(end, outfilename);
+        return;
+    }
+
+    // unlucky case: several cycles needed
     // reserve needed memory
     this->reserve(step);
     // actual file merging loop
@@ -193,15 +208,22 @@ void ExternalSorter<T>::merge(const char* outfilename)
         ssize_t mid = start + dist;
         if (mid > end) 
             break;
-        mergeHelper(start, mid, location);
+        this->mergeHelper(start, mid, location);
         ++end;
         start = mid;
     }
     if (start < end-1)
     { // one last run
-        mergeHelper(start, end, end+1);
+        this->mergeHelper(start, end, end+1);
         start = end + 1;
     }
-    boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % start;
+    this->saveOutput(start, outfilename);
+}
+
+template <class T>
+void ExternalSorter<T>::saveOutput(ssize_t idx,
+                                   const char* outfilename)
+{
+    boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % idx;
     std::rename(fmt.str().c_str(), outfilename);
 }

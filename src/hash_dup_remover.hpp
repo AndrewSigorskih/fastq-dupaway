@@ -210,6 +210,7 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
         {
             left = left_buffer.next();
             right = right_buffer.next();
+            // TODO add AND TEST unmatching ids case!!!
             setRecordPair record(
                 setRecord(left.seq(), left.seq_len()-1),
                 setRecord(right.seq(), right.seq_len()-1)

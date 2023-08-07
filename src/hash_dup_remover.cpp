@@ -5,6 +5,7 @@ setRecord::setRecord(const char* seq, ssize_t len)
 {
     this->m_seq_len = len;
     long num_chunks = (len / SeqUtils::CHUNKSIZE) + 1;
+    this->m_hash.reserve(num_chunks);
     for (long i = 0; i < num_chunks; ++i)
     {
         this->m_hash.push_back(

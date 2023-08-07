@@ -1,10 +1,6 @@
 # fastq-dupaway
 
-fastq-dupaway is a program for memory-efficient deduplication of single-end and paired-end FASTQ and FASTA files (both plain-text and gzip-compressed).<br>
-The main advantage is two duplication-removing algorithms implemented:
-* By default, the hashtable-based approach is used. This mode removes only exact duplicates, however it can easily work with situations when reads in paired-end files are not "perfectly synchronised", i.e. the order and number of reads in first file do not match those of the second file;
-* The sequence-based approach requires paired-end files to be in perfect sync, however [work in progress] this mode allows user to specify number of mismatches N; pairs of reads that do not differ by more than N mismatches from any other pair in dataset will be considered duplicated and thus removed.
-
+fastq-dupaway is a program for memory-efficient deduplication of single-end and paired-end FASTQ and FASTA files (both plain-text and gzip-compressed).
 
 ## Installation
 
@@ -38,10 +34,11 @@ conda install -c conda-forge boost
 ## Usage
 
 ```
-fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] [-m MEMORY-LIMIT] [--format fasta|fastq] [--no-sort]
+fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
+        [-m MEMORY-LIMIT] [--format fasta|fastq] [--compare-seq] [--hashed]
 ```
 
-The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both seconda input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed below:
+The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both second input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed below:
 
 ```
   -h [ --help ]          Produce help message and exit
@@ -50,16 +47,23 @@ The only two required arguments are names of input and output files. If only one
   -o [ --output-1 ] arg  First output file (required)
   -p [ --output-2 ] arg  Second output file (optional, required for paired-end 
                          mode)
-  -m [ --mem-limit ] arg Memory limit in kilobytes for sorting (default 2000000
-                         ~ 2Gb).
-                         Values less than 1000000 or greater than 10000000 will
-                         be discarded as unrealistic.
-                         Note that actual memory usage for default 
-                         hashtable-based deduplication step may exceed this 
-                         value.
-  --format arg           input file format: fastq (default) or fasta
-  --no-sort              Do not sort input files by id; this option is for hashtable-based
-                         mode only.
+  -m [ --mem-limit ] arg Memory limit in megabytes (default 2048 = 2Gb).
+                         Supported value range is [100 <-> 10240 (10 Gb)]
+                         Actual memory usage will slightly exceed this value.
+                         The hashtable-based deduplication mode does not 
+                         support strict memory limitation,
+                         but will most likely not exceed upper bound.
+  --format arg           input file format: "fastq" (default) or "fasta"
+  --compare-seq          Sequence comparison mode for deduplication step.
+                         Supported options:
+                         - "tight" (default): compare sequences directly, sequences
+                         of different lengths are considered different.
+                         - "loose":  compare sequences directly, sequences of 
+                         different lengths are considered duplicates if shorter
+                         sequence exactly matches with prefix of longer 
+                         sequence.
+  --hashed               Use hash-based
+                         approach instead of sequence-based.
 ```
 
 ## Additional information
