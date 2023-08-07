@@ -114,10 +114,13 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     output << obj;
     records.insert(setRecord(obj.seq(), obj.seq_len()-1));
 
+    size_t cnt = 1L;
+
     while (!buffer.eof())
     {
         while (!buffer.block_end())
         {
+            ++cnt;
             obj = buffer.next();
             setRecord record(obj.seq(), obj.seq_len()-1);
             auto it = records.find(record);
@@ -129,6 +132,7 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
         }
         buffer.refresh();
     }
+    std::cout << cnt << "reads processed!\n";
 }
 
 template<class T>

@@ -49,7 +49,7 @@ bool parse_args(int argc, char** argv, Options& opts)
                                               "Actual memory usage will slightly exceed this value.\n"
                                               "The hashtable-based deduplication mode does not support strict memory limitation,\n"
                                               "but will most likely not exceed upper bound.")
-        ("format", po::value<string>(), "input file format: fastq (default) or fasta")
+        ("format", po::value<string>(), "input file format: fastq (default) or fasta.")
         ("compare-seq", po::value<string>(), "Sequence comparison mode for deduplication step.\n"
                                              "Supported options:\n"
                                              "\ttight (default): compare sequences directly, sequences of different lengths are considered different.\n"
