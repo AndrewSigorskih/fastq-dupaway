@@ -79,6 +79,8 @@ BaseComparator* makeComparator(ComparatorType ctype,
 {
     switch (ctype)
     {
+        case ComparatorType::CT_NONE:
+            return nullptr;
         case ComparatorType::CT_TIGHT:
             return new TightComparator(paired);
         case ComparatorType::CT_LOOSE:

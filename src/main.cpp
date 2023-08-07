@@ -6,8 +6,7 @@
 #include "comparator.hpp"
 #include "fastqview.hpp"
 #include "seq_dup_remover.hpp"
-
-//#include "hash_dup_remover.hpp"
+#include "hash_dup_remover.hpp"
 
 using std::string;
 namespace po = boost::program_options;
@@ -102,7 +101,10 @@ bool parse_args(int argc, char** argv, Options& opts)
 
         // seq-based or hash-based
         if (hash_opt)
-        { opts.mode = (opts.mode | Modes::HASH); }
+        {
+            opts.mode = (opts.mode | Modes::HASH);
+            opts.ctype = ComparatorType::CT_NONE;
+        }
 
         // memory limit safe check
         if (vm.count("mem-limit"))
@@ -151,19 +153,6 @@ int main(int argc, char** argv)
     // TODO: implement gzipped files support : create tmp dir here and gunzip files to 
     // it before everythong else?
 
-    // update hashing len parameter
-    /*
-    if (opts.mode & Modes::FASTA)
-    {
-        std::cerr << "Fasta file support is not properly implemented yet!\n";
-    } else { // fastq
-        BufferedInput<FastqView> buf(opts.memLimit);
-        getMinPrefixLen<FastqView>(opts.input_1.c_str(), &buf);
-        if (opts.input_2.size() > 0)
-            getMinPrefixLen<FastqView>(opts.input_2.c_str(), &buf);
-    }
-    std::cerr << "Updated PREFIX_LEN parameter: " << params::PREFIX_LEN << '\n';
-    */
    
     try {
         BaseComparator* comp = makeComparator(opts.ctype, 
@@ -173,34 +162,46 @@ int main(int argc, char** argv)
             std:: cout << "seq, single, fastq\n";
             SeqDupRemover<FastqView> remover(opts.memLimit, comp);
             remover.filterSE(opts.input_1, opts.output_1);
+
         } else if (opts.mode == Modes::FASTA) {
             std::cout << "seq, single, fasta\n";
             std::cerr << "This mode is not properly implemented yet!\n";
+
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
             SeqDupRemover<FastqView> remover(opts.memLimit, comp);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
+
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
             std::cout << "seq, paired, fasta\n";
             std::cerr << "This mode is not properly implemented yet!\n";
+
         } else if (opts.mode == Modes::HASH) {
             std:: cout << "hash, single, fastq\n";
-            std::cerr << "This mode is not properly implemented yet!\n";
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, false); // TODO pass option here
+            remover.filterSE(opts.input_1, opts.output_1);
+
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
             std::cout << "hash, single, fasta\n";
             std::cerr << "This mode is not properly implemented yet!\n";
+
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             std::cout << "hash, paired, fastq\n";
-            std::cerr << "This mode is not properly implemented yet!\n";
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, true); // TODO pass option here
+            remover.filterPE(opts.input_1, opts.input_2,
+                             opts.output_1, opts.output_2);
+
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
             std::cout << "hash, paired, fasta\n";
             std::cerr << "This mode is not properly implemented yet!\n";
+
         } else {
             std::cerr << "Unknown mode!!!\n";
         }
 
-        delete comp;
+        if (comp)
+            delete comp;
 
     } catch (const std::exception& exc) {
         std::cerr << "An error occured:\n";

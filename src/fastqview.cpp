@@ -138,75 +138,32 @@ void FastqView::err_len_not_match()
 }
 
 /*
----------------------------------------------------
-            >>> FastqViewWithPreHash <<<
----------------------------------------------------
-*/
-FastqViewWithPreHash::FastqViewWithPreHash(const FastqViewWithPreHash& other) : FastqView(std::move(other))
-{
-    this->m_hash = other.m_hash;
-}
-
-FastqViewWithPreHash::FastqViewWithPreHash(FastqViewWithPreHash&& other) : FastqView(std::move(other))
-{
-    this->m_hash = other.m_hash;
-    other.m_hash = 0L;
-}
-
-FastqViewWithPreHash& FastqViewWithPreHash::operator=(FastqViewWithPreHash&& other)
-{
-    FastqView::operator=(std::move(other));
-    if (this != &other)
-    {
-        this->m_hash = other.m_hash;
-        other.m_hash = 0L;
-    }
-    return *this;
-}
-
-int FastqViewWithPreHash::cmp(const FastqViewWithPreHash& other) const
-{
-    if (this->m_hash != other.m_hash)
-        return this->m_hash < other.m_hash ? -1 : 1;
-    // hashes are equal, needs checking
-    if ((this->m_seqlen > params::PREFIX_LEN) || (other.m_seqlen > params::PREFIX_LEN))
-    {
-        int res = SeqUtils::seqncmp(this->seq(),
-                                    other.seq(),
-                                    std::min(this->m_seqlen-1, other.m_seqlen-1));
-        if ((res == 0) && (this->m_seqlen < other.m_seqlen))
-            return -1;
-        if ((res == 0) && (this->m_seqlen > other.m_seqlen))
-            return 1;
-        return res;
-    }
-    // sequences are both of size PREFIX_LEN and equal
-    return 0;
-}
-
-bool operator>(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right)
-{
-    return (left.cmp(right) > 0);
-}
-
-bool operator<(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right)
-{
-    return (left.cmp(right) < 0);
-}
-
-std::streamsize FastqViewWithPreHash::read_new(char* start, char* stop)
-{
-    std::streamsize size = FastqView::read_new(start, stop);
-    if (size > 0)
-        this->m_hash = SeqUtils::pattern2number(this->seq(), params::PREFIX_LEN);
-    return size;
-}
-
-/*
 ----------------------------------------------
             >>> FastqViewWithId <<<
 ----------------------------------------------
 */
+FastqViewWithId::FastqViewWithId(const FastqViewWithId& other) : FastqView(other)
+{
+    this->m_idtag = other.m_idtag;
+    this->m_idtag_len = other.m_idtag_len;
+}
+
+FastqViewWithId::FastqViewWithId(FastqViewWithId&& other) : FastqView(std::move(other))
+{
+    this->m_idtag = other.m_idtag;
+    this->m_idtag_len = other.m_idtag_len;
+}
+
+FastqViewWithId& FastqViewWithId::operator=(FastqViewWithId&& other)
+{
+    FastqView::operator=(std::move(other));
+    if (this != &other)
+    {
+        this->m_idtag = other.m_idtag;
+        this->m_idtag_len = other.m_idtag_len;
+    }
+    return *this;
+}
 
 int FastqViewWithId::cmp(const FastqViewWithId& other) const
 {

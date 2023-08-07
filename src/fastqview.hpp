@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
-#include "seq_utils.hpp"
 
 class FastqView
 {
@@ -29,25 +28,13 @@ protected:
     ssize_t m_idlen = 0L, m_seqlen = 0L, m_field3len = 0L, m_quallen = 0L;
 };
 
-class FastqViewWithPreHash : public FastqView
+class FastqViewWithId : public FastqView
 {
 public:
-    FastqViewWithPreHash() {};
-    FastqViewWithPreHash(const FastqViewWithPreHash&);
-    FastqViewWithPreHash(FastqViewWithPreHash&&);
-    FastqViewWithPreHash& operator=(FastqViewWithPreHash&& other);
-    int cmp(const FastqViewWithPreHash& other) const;
-    friend bool operator>(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right);
-    friend bool operator<(const FastqViewWithPreHash& left, const FastqViewWithPreHash& right);
-    std::streamsize read_new(char*, char*);
-    uint64_t pref_hash() const { return m_hash; }
-private:
-    uint64_t m_hash = 0UL;
-};
-
-class FastqViewWithId : public FastqView
-{ // TODO needs copy and move semantics added! also comparison operator overloads
-public:
+    FastqViewWithId() {}
+    FastqViewWithId(const FastqViewWithId&);
+    FastqViewWithId(FastqViewWithId&&);
+    FastqViewWithId& operator=(FastqViewWithId&&);
     int cmp(const FastqViewWithId& other) const;
     friend bool operator>(const FastqViewWithId& left, const FastqViewWithId& right);
     friend bool operator<(const FastqViewWithId& left, const FastqViewWithId& right);

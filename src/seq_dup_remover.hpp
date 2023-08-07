@@ -23,19 +23,13 @@ public:
         FS::remove_all(m_tempdir);
         free(m_tempdir);
     }
-    void filterSE(const string& infile,
-                  const string& outfile);
-    void filterPE(const string& infile1,
-                  const string& infile2,
-                  const string& outfile1,
-                  const string& outfile2);
+    void filterSE(const string&, const string&);
+    void filterPE(const string&, const string&,
+                  const string&, const string&);
 private:
-    void impl_filterSE(const char* infile,
-                       const char* outfile);
-    void impl_filterPE(const char* infile1,
-                       const char* infile2,
-                       const char* outfile1,
-                       const char* outfile2);
+    void impl_filterSE(const char*, const char*);
+    void impl_filterPE(const char*, const char*,
+                       const char*, const char*);
 private:
     ssize_t m_memlimit;
     BaseComparator* m_comparator;

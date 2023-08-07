@@ -10,6 +10,7 @@ const ssize_t STARTING_SEQ_SIZE = 150L;
 
 enum ComparatorType
 {
+    CT_NONE,
     CT_TIGHT,
     CT_LOOSE
 };
