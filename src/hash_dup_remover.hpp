@@ -118,6 +118,10 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
 
     size_t i = SIZE_MAX;
     uint64_t aboba = ULONG_MAX;
+    if (i == aboba)
+        std::cout << "size_max == ulong_max";
+    else
+        std::cout << "size_max != ulong_max";
 
     while (!buffer.eof())
     {
