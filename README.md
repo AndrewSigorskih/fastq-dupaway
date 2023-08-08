@@ -50,6 +50,7 @@ The only two required arguments are names of input and output files. If only one
   -o [ --output-1 ] arg  First output file (required)
 
   -p [ --output-2 ] arg  Second output file (optional, required for paired-end mode)
+
   -m [ --mem-limit ] arg Memory limit in megabytes (default 2048 = 2Gb).
                          Supported value range is [100 <-> 10240 (10 Gb)]
                          Actual memory usage will slightly exceed this value.
@@ -67,7 +68,7 @@ The only two required arguments are names of input and output files. If only one
                          different lengths are considered duplicates if shorter
                          sequence exactly matches with prefix of longer 
                          sequence.
-                         
+
   --hashed               Use hash-based approach instead of sequence-based.
 ```
 

@@ -114,25 +114,36 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     output << obj;
     records.insert(setRecord(obj.seq(), obj.seq_len()-1));
 
-    size_t cnt = 1L;
+    size_t cnt_all = 1L, cnt_good = 1L, cnt_collis = 0L, cnt_equal = 0L;
+
+    size_t i = SIZE_MAX;
+    uint64_t aboba = ULONG_MAX;
 
     while (!buffer.eof())
     {
         while (!buffer.block_end())
         {
-            ++cnt;
+            ++cnt_all;
             obj = buffer.next();
             setRecord record(obj.seq(), obj.seq_len()-1);
             auto it = records.find(record);
             if (it == records.end())
-            {
+            {   
+                ++cnt_good;
                 output << obj;
                 records.insert(record);
+            } else {
+                ++cnt_collis;
+                if (record == *it)
+                    ++cnt_equal;
             }
         }
         buffer.refresh();
     }
-    std::cout << cnt << "reads processed!\n";
+    std::cout << cnt_all << " reads processed totally\n";
+    std::cout << cnt_good << " reads marked as unique\n";
+    std::cout << cnt_collis << "hash collisions\n";
+    std::cout << cnt_equal << "duplicated by len and hash values\n";
 }
 
 template<class T>
