@@ -7,6 +7,8 @@
 #include "external_sort.hpp"
 #include "file_utils.hpp"
 
+#include <climits> // for test purposes, delete after
+
 using std::string;
 
 class setRecord
