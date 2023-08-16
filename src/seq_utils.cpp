@@ -5,7 +5,6 @@ inline int SeqUtils::_char2number(char c)
     switch (c)
     {
         case 'A':
-        case 'N':
             return 0;
         case 'C':
             return 1;
@@ -13,6 +12,8 @@ inline int SeqUtils::_char2number(char c)
             return 2;
         case 'T':
             return 3;
+        case 'N':
+            return 4;
         default:
             std::cerr << "Error: unknown character in DNA sequence: " << c << '\n';
             throw std::runtime_error("Supported sequence character set: {A, N, C, G, T}!");
@@ -25,7 +26,7 @@ uint64_t SeqUtils::pattern2number(const char* seq, size_t len)
 
     for (size_t i = 0; i < len; ++i)
     {
-        result = 4 * result + SeqUtils::_char2number(seq[i]);
+        result = 5 * result + SeqUtils::_char2number(seq[i]);
     }
 
     return result;

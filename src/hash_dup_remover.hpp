@@ -121,9 +121,9 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     size_t i = SIZE_MAX;
     uint64_t aboba = ULONG_MAX;
     if (i == aboba)
-        std::cout << "size_max == ulong_max";
+        std::cout << "size_max == ulong_max\n";
     else
-        std::cout << "size_max != ulong_max";
+        std::cout << "size_max != ulong_max\n";
 
     while (!buffer.eof())
     {
@@ -148,8 +148,8 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     }
     std::cout << cnt_all << " reads processed totally\n";
     std::cout << cnt_good << " reads marked as unique\n";
-    std::cout << cnt_collis << "hash collisions\n";
-    std::cout << cnt_equal << "duplicated by len and hash values\n";
+    std::cout << cnt_collis << " hash collisions\n";
+    std::cout << cnt_equal << " duplicated by len and hash values\n";
 }
 
 template<class T>
