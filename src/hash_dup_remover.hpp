@@ -7,8 +7,6 @@
 #include "external_sort.hpp"
 #include "file_utils.hpp"
 
-#include <climits> // for test purposes, delete after
-
 using std::string;
 
 class setRecord
@@ -39,10 +37,16 @@ struct setRecordHash
 {
     uint64_t operator()(const setRecord &item) const
         { return item.hash_prefix(); }
+};
 
+struct setRecordPairHash
+{
     uint64_t operator()(const setRecordPair &item) const
         { return item.hash_prefix(); }
 };
+
+using hashed_set = std::unordered_set<setRecord, setRecordHash>;
+using paired_hashed_set = std::unordered_set<setRecordPair, setRecordPairHash>;
 
 template<class T>
 class HashDupRemover
@@ -80,9 +84,6 @@ HashDupRemover<T>::~HashDupRemover()
     free(m_tempdir);
 }
 
-using hashed_set = std::unordered_set<setRecord, setRecordHash>;
-using paired_hashed_set = std::unordered_set<setRecordPair, setRecordHash>;
-
 template<class T>
 void HashDupRemover<T>::filterSE(const string& infile,
                                  const string& outfile)
@@ -114,42 +115,25 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     buffer.set_file(&input);
     obj = buffer.next();
     output << obj;
-    records.insert(setRecord(obj.seq(), obj.seq_len()-1));
-
-    size_t cnt_all = 1L, cnt_good = 1L, cnt_collis = 0L, cnt_equal = 0L;
-
-    size_t i = SIZE_MAX;
-    uint64_t aboba = ULONG_MAX;
-    if (i == aboba)
-        std::cout << "size_max == ulong_max\n";
-    else
-        std::cout << "size_max != ulong_max\n";
+    //records.insert(setRecord(obj.seq(), obj.seq_len()-1));
+    records.insert(std::move(setRecord(obj.seq(), obj.seq_len()-1)));
 
     while (!buffer.eof())
     {
         while (!buffer.block_end())
         {
-            ++cnt_all;
             obj = buffer.next();
             setRecord record(obj.seq(), obj.seq_len()-1);
             auto it = records.find(record);
             if (it == records.end())
             {   
-                ++cnt_good;
                 output << obj;
-                records.insert(record);
-            } else {
-                ++cnt_collis;
-                if (record == *it)
-                    ++cnt_equal;
+                records.insert(std::move(record));
             }
         }
         buffer.refresh();
     }
-    std::cout << cnt_all << " reads processed totally\n";
-    std::cout << cnt_good << " reads marked as unique\n";
-    std::cout << cnt_collis << " hash collisions\n";
-    std::cout << cnt_equal << " duplicated by len and hash values\n";
+    
 }
 
 template<class T>
