@@ -187,7 +187,7 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             std::cout << "hash, paired, fastq\n";
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, true); // TODO pass option here
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, false); // TODO pass option here
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 

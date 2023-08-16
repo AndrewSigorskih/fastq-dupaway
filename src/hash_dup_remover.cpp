@@ -34,7 +34,12 @@ setRecordPair::setRecordPair(const setRecord& first, const setRecord& second)
 
 bool setRecordPair::operator==(const setRecordPair& other) const
 {
+    /*
     if (this->left == other.left)
         return (this->right == other.right);
+    return false;
+    */
+    if ((this->left == other.left) && (this->right == other.right))
+        return true;
     return false;
 }

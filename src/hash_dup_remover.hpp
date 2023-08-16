@@ -27,7 +27,7 @@ public:
     setRecordPair() {}
     setRecordPair(const setRecord&, const setRecord&);
     bool operator==(const setRecordPair&) const;
-    inline uint64_t hash_prefix() const { return this->left.hash_prefix(); }
+    inline uint64_t hash_prefix() const { return this->left.hash_prefix() ^ this->right.hash_prefix(); }
 private:
     setRecord left;
     setRecord right;
