@@ -32,6 +32,23 @@ uint64_t SeqUtils::pattern2number(const char* seq, size_t len)
     return result;
 }
 
+void SeqUtils::seq2hash(std::vector<uint64_t>& hash, const char* seq, ssize_t len)
+{
+    long num_chunks = len / SeqUtils::CHUNKSIZE;
+    if (num_chunks*SeqUtils::CHUNKSIZE < len)
+        ++num_chunks;
+    
+    hash.reserve(num_chunks);
+    for (long i = 0; i < num_chunks; ++i)
+        hash.push_back(
+            SeqUtils::pattern2number(
+                seq+(i*SeqUtils::CHUNKSIZE),
+                std::min(SeqUtils::CHUNKSIZE, len-(i*SeqUtils::CHUNKSIZE))
+            )
+        );
+}
+
+
 int SeqUtils::seqncmp(const char* s1, const char* s2, size_t len)
 {
     while ((len > 0) && (SeqUtils::_char2number(*s1) == SeqUtils::_char2number(*s2)))

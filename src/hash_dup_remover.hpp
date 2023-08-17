@@ -25,14 +25,26 @@ class setRecordPair
 {
 public:
     setRecordPair() {}
-    setRecordPair(const setRecord&, const setRecord&);
+    setRecordPair(const char*, ssize_t, const char*, ssize_t);
+    bool operator==(const setRecordPair&) const;
+    inline uint64_t hash_prefix() const { return this->m_l_hash[0] ^ this->m_r_hash[0]; }
+private:
+    ssize_t m_l_len, m_r_len;
+    std::vector<uint64_t> m_l_hash, m_r_hash;
+};
+/*
+class setRecordPair
+{
+public:
+    setRecordPair() {}
+    setRecordPair(const setRecord&&, const setRecord&&);
     bool operator==(const setRecordPair&) const;
     inline uint64_t hash_prefix() const { return this->left.hash_prefix() ^ this->right.hash_prefix(); }
 private:
     setRecord left;
     setRecord right;
 };
-
+*/
 struct setRecordHash
 {
     uint64_t operator()(const setRecord &item) const
@@ -110,6 +122,7 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
 
     T obj;
     hashed_set records;
+    records.reserve(100000L);  // TODO optimize this value
     BufferedInput<T> buffer(5L * constants::HUNDRED_MB);
 
     buffer.set_file(&input);
@@ -194,6 +207,7 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
 
     T left, right;
     paired_hashed_set records;
+    records.reserve(100000L);  // TODO optimize this value
     BufferedInput<T> left_buffer(5L * constants::HUNDRED_MB), right_buffer(5L * constants::HUNDRED_MB);
     left_buffer.set_file(&input1);
     right_buffer.set_file(&input2);
@@ -202,10 +216,16 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
 
     output1 << left;
     output2 << right;
-    records.insert(
+    /*records.insert(
         setRecordPair(
-            setRecord(left.seq(), left.seq_len()-1),
-            setRecord(right.seq(), right.seq_len()-1)
+            std::move(setRecord(left.seq(), left.seq_len()-1)),
+            std::move(setRecord(right.seq(), right.seq_len()-1))
+        )
+    );*/
+    records.insert(
+        std::move(
+            setRecordPair(left.seq(), left.seq_len()-1,
+                          right.seq(), right.seq_len()-1)
         )
     );
 
@@ -216,16 +236,18 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
             left = left_buffer.next();
             right = right_buffer.next();
             // TODO add AND TEST unmatching ids case!!!
-            setRecordPair record(
-                setRecord(left.seq(), left.seq_len()-1),
-                setRecord(right.seq(), right.seq_len()-1)
-            );
+            /*setRecordPair record(
+                std::move(setRecord(left.seq(), left.seq_len()-1)),
+                std::move(setRecord(right.seq(), right.seq_len()-1))
+            );*/
+            setRecordPair record(left.seq(), left.seq_len()-1,
+                                 right.seq(), right.seq_len()-1);
             auto it = records.find(record);
             if (it == records.end())
             {
                 output1 << left;
                 output2 << right;
-                records.insert(record);
+                records.insert(std::move(record));
             }
         }
         left_buffer.refresh();
