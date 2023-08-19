@@ -10,10 +10,6 @@ setRecord::setRecord(const char* seq, ssize_t len)
 bool setRecord::operator==(const setRecord& other) const
 {
     if (this->m_seq_len != other.m_seq_len) return false;
-    /*for (size_t i = 0; i < this->m_hash.size(); ++i)
-        if (this->m_hash[i] != other.m_hash[i])
-            return false;
-    return true;*/
     return (this->m_hash == other.m_hash);
 }
 
@@ -33,25 +29,5 @@ bool setRecordPair::operator==(const setRecordPair& other) const
         return false;
     if (this->m_l_hash != other.m_l_hash)
         return false;
-    return this->m_r_hash == other.m_r_hash;
+    return (this->m_r_hash == other.m_r_hash);
 }
-
-/*
-setRecordPair::setRecordPair(const setRecord&& first, const setRecord&& second)
-{
-    this->left = std::move(first);
-    this->right = std::move(second);
-}
-
-bool setRecordPair::operator==(const setRecordPair& other) const
-{
-    / *
-    if (this->left == other.left)
-        return (this->right == other.right);
-    return false;
-    * /
-    if ((this->left == other.left) && (this->right == other.right))
-        return true;
-    return false;
-}
-*/

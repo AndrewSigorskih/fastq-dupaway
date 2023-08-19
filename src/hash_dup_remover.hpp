@@ -2,12 +2,15 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <boost/functional/hash.hpp>
 
 #include "bufferedinput.hpp"
 #include "external_sort.hpp"
 #include "file_utils.hpp"
 
 using std::string;
+struct setRecordHash;
+struct setRecordPairHash;
 
 class setRecord
 {
@@ -15,7 +18,8 @@ public:
     setRecord() {}
     setRecord(const char*, ssize_t);
     bool operator==(const setRecord&) const;
-    inline uint64_t hash_prefix() const { return m_hash[0]; }
+    friend setRecordHash;
+    //inline uint64_t hash_prefix() const { return m_hash[0]; }
 private:
     ssize_t m_seq_len;
     std::vector<uint64_t> m_hash;
@@ -27,34 +31,38 @@ public:
     setRecordPair() {}
     setRecordPair(const char*, ssize_t, const char*, ssize_t);
     bool operator==(const setRecordPair&) const;
-    inline uint64_t hash_prefix() const { return this->m_l_hash[0] ^ this->m_r_hash[0]; }
+    friend setRecordPairHash;
+    //inline uint64_t hash_prefix() const { return this->m_l_hash[0]; }
 private:
     ssize_t m_l_len, m_r_len;
     std::vector<uint64_t> m_l_hash, m_r_hash;
 };
-/*
-class setRecordPair
+
+struct setRecordHash  // maybe change to https://stackoverflow.com/a/72073933
 {
-public:
-    setRecordPair() {}
-    setRecordPair(const setRecord&&, const setRecord&&);
-    bool operator==(const setRecordPair&) const;
-    inline uint64_t hash_prefix() const { return this->left.hash_prefix() ^ this->right.hash_prefix(); }
-private:
-    setRecord left;
-    setRecord right;
-};
-*/
-struct setRecordHash
-{
-    uint64_t operator()(const setRecord &item) const
-        { return item.hash_prefix(); }
+    std::size_t operator()(const setRecord &item) const
+    {
+        std::size_t seed = item.m_hash.size();
+        for (auto& i: item.m_hash)
+            boost::hash_combine(seed, i);
+        return seed;
+    }
 };
 
 struct setRecordPairHash
 {
     uint64_t operator()(const setRecordPair &item) const
-        { return item.hash_prefix(); }
+    {
+        std::size_t seed = item.m_l_hash.size();
+        for (auto& i: item.m_l_hash)
+            boost::hash_combine(seed, i);
+
+        boost::hash_combine(seed, item.m_r_hash.size());
+        for (auto& i: item.m_r_hash)
+            boost::hash_combine(seed, i);
+
+        return seed;
+    }
 };
 
 using hashed_set = std::unordered_set<setRecord, setRecordHash>;
@@ -216,12 +224,6 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
 
     output1 << left;
     output2 << right;
-    /*records.insert(
-        setRecordPair(
-            std::move(setRecord(left.seq(), left.seq_len()-1)),
-            std::move(setRecord(right.seq(), right.seq_len()-1))
-        )
-    );*/
     records.insert(
         std::move(
             setRecordPair(left.seq(), left.seq_len()-1,
@@ -236,10 +238,6 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
             left = left_buffer.next();
             right = right_buffer.next();
             // TODO add AND TEST unmatching ids case!!!
-            /*setRecordPair record(
-                std::move(setRecord(left.seq(), left.seq_len()-1)),
-                std::move(setRecord(right.seq(), right.seq_len()-1))
-            );*/
             setRecordPair record(left.seq(), left.seq_len()-1,
                                  right.seq(), right.seq_len()-1);
             auto it = records.find(record);
