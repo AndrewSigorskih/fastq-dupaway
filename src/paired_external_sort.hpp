@@ -50,7 +50,7 @@ template <class T>
 class PairedExternalSorter
 {
 public:
-    PairedExternalSorter(ssize_t, char*);
+    PairedExternalSorter(ssize_t, const char*);
     ~PairedExternalSorter();
     void sort(const char*, const char*, const char*, const char*);
 private:
@@ -62,7 +62,7 @@ private:
 private:
     ssize_t m_memlimit, m_filesNum;
     char* m_tempdir;
-    char* m_workdir;
+    const char* m_workdir;
     std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
     std::vector<std::ifstream> m_inputs;
@@ -70,14 +70,13 @@ private:
 
 template <class T>
 PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit,
-                                              char* workdir)
+                                              const char* workdir) : m_workdir(workdir)
 {
     m_memlimit = memlimit;
-    m_workdir = workdir;
     m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
     m_tempdir[constants::DIRNAME_LEN] = '\0';
     std::ignore = chdir(m_workdir);
-    create_random_dir(m_tempdir, constants::DIRNAME_LEN);
+    FileUtils::create_random_dir(m_tempdir, constants::DIRNAME_LEN);
     std::ignore = chdir("..");
 }
 

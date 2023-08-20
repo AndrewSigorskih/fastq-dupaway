@@ -5,24 +5,16 @@
 #include "external_sort.hpp"
 #include "file_utils.hpp"
 #include "paired_external_sort.hpp"
+
 using std::string;
+using FileUtils::TemporaryDirectory;
 
 template<class T>
 class SeqDupRemover
 {
 public:
-    SeqDupRemover(ssize_t memlimit, BaseComparator* comparator) : m_memlimit(memlimit)
-    {
-        m_comparator = comparator;
-        m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
-        m_tempdir[constants::DIRNAME_LEN] = '\0';
-        create_random_dir(m_tempdir, constants::DIRNAME_LEN);
-    }
-    ~SeqDupRemover()
-    {
-        FS::remove_all(m_tempdir);
-        free(m_tempdir);
-    }
+    SeqDupRemover(ssize_t, BaseComparator*, TemporaryDirectory*);
+    ~SeqDupRemover() {}
     void filterSE(const string&, const string&);
     void filterPE(const string&, const string&,
                   const string&, const string&);
@@ -33,25 +25,37 @@ private:
 private:
     ssize_t m_memlimit;
     BaseComparator* m_comparator;
-    char* m_tempdir;
+    TemporaryDirectory* m_tempdir;
 };
+
+template<class T>
+SeqDupRemover<T>::SeqDupRemover(ssize_t memlimit,
+                                BaseComparator* comparator,
+                                TemporaryDirectory* tempdir)
+{
+    m_memlimit = memlimit;
+    m_comparator = comparator;
+    m_tempdir = tempdir;
+}
 
 template<class T>
 void SeqDupRemover<T>::filterSE(const string& infile,
                                 const string& outfile)
 {
-    string infilename = infile;
-    // TODO gzipped output? deal with it HERE
-    string sorted = (boost::format("%1%/data.sorted") % m_tempdir).str();
-    string filtered = (boost::format("%1%/data.out") % m_tempdir).str();
+    // gunzip file if needed
+    m_tempdir->set_files(infile);
+
+    string sorted = (boost::format("%1%/data.sorted") % m_tempdir->name()).str();
     {   // sort input file in a scope so all buffers deallocate
-        ExternalSorter<T> sorter(m_memlimit, m_tempdir);
-        sorter.sort(infilename.c_str(), sorted.c_str());
+        ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
+        sorter.sort(m_tempdir->input1().c_str(), sorted.c_str());
     }
+    // TODO remove ungzipped input here?
     // deduplicate file
-    this->impl_filterSE(sorted.c_str(), filtered.c_str());
-    // TODO gzip if output is gz else
-    std::rename(filtered.c_str(), outfile.c_str());
+    this->impl_filterSE(sorted.c_str(), m_tempdir->output1().c_str());
+    
+    // save output
+    m_tempdir->save_output(outfile);
 }
 
 template<class T>
@@ -91,22 +95,27 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
                                 const string& outfile1,
                                 const string& outfile2)
 {
+    // gunzip files if needed
+    m_tempdir->set_files(infile1, infile2);
     string infilename1 = infile1, infilename2 = infile2;
-    // TODO deal with gzipped input here
-    string sorted1 = (boost::format("%1%/data.sorted1") % m_tempdir).str();
-    string sorted2 = (boost::format("%1%/data.sorted2") % m_tempdir).str();
-    string filtered1 = (boost::format("%1%/data.out1") % m_tempdir).str();
-    string filtered2 = (boost::format("%1%/data.out2") % m_tempdir).str();
-    {
-        PairedExternalSorter<T> sorter(m_memlimit, m_tempdir);
-        sorter.sort(infilename1.c_str(), infilename2.c_str(),
-                    sorted1.c_str(), sorted2.c_str());
+    
+    string sorted1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
+    string sorted2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
+    {  // sort input files in a scope so all buffers deallocate
+        PairedExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
+        sorter.sort(m_tempdir->input1().c_str(),
+                    m_tempdir->input2().c_str(),
+                    sorted1.c_str(),
+                    sorted2.c_str());
     }
-    this->impl_filterPE(sorted1.c_str(), sorted2.c_str(),
-                        filtered1.c_str(), filtered2.c_str());
-    // TODO gzip if output is gz else
-    std::rename(filtered1.c_str(), outfile1.c_str());
-    std::rename(filtered2.c_str(), outfile2.c_str());
+    // TODO remove ungzipped input here?
+
+    this->impl_filterPE(sorted1.c_str(),
+                        sorted2.c_str(),
+                        m_tempdir->output1().c_str(),
+                        m_tempdir->output2().c_str());
+    // save outputs
+    m_tempdir->save_output(outfile1, outfile2);
 }
 
 template<class T>

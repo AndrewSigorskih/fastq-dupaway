@@ -30,6 +30,7 @@ struct Options
     ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
     ComparatorType ctype = ComparatorType::CT_TIGHT;
+    bool unordered = false;
 };
 
 bool parse_args(int argc, char** argv, Options& opts)
@@ -47,15 +48,20 @@ bool parse_args(int argc, char** argv, Options& opts)
         ("mem-limit,m", po::value<ssize_t>(), "Memory limit in megabytes (default 2048 = 2Gb).\n"
                                               "Supported value range is [100 <-> 10240 (10 Gb)]\n"
                                               "Actual memory usage will slightly exceed this value.\n"
-                                              "The hashtable-based deduplication mode does not support strict memory limitation,\n"
-                                              "but will most likely not exceed upper bound.")
+                                              "NB: The hash-based deduplication mode does not support strict memory limitation.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta.")
         ("compare-seq", po::value<string>(), "Sequence comparison mode for deduplication step.\n"
                                              "Supported options:\n"
                                              "\ttight (default): compare sequences directly, sequences of different lengths are considered different.\n"
-                                             "\t loose:  compare sequences directly, sequences of different lengths are considered duplicates if shorter"
-                                             " sequence exactly matches with prefix of longer sequence.\n")
-        ("hashed", po::bool_switch(&hash_opt), "[This option is subject to change soon] Use hash-based approach instead of sequence-based.")
+                                             "\tloose: compare sequences directly, sequences of different lengths are considered duplicates if shorter"
+                                             " sequence exactly matches with prefix of longer sequence.")
+        ("hashed", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
+                                               "With this mode the program will run significantly faster, however no memory limit can be set"
+                                               " and only complete duplicates will be filtered out.")
+        ("unordered", po::bool_switch(&opts.unordered), "This option is supported only by hash mode for paired inputs.\n"
+                                                        "Enable this flag if reads in your paired input files are not synchronized"
+                                                        " (i.e. the reads order determined by read IDs does not match).\n"
+                                                        "If this option is enabled, the both input files will be sorted by read IDs before deduplication.")
         ;
         // Parse command line arguments
         po::variables_map vm;
@@ -134,32 +140,37 @@ int main(int argc, char** argv)
     bool result = parse_args(argc, argv, opts);
     if (!result)
         return 1;
-    
-    // verbose info, will be deleted
-    std::cout << "Input file(s): " << opts.input_1;
-    if (opts.input_2.size())
-        std::cout << " and " << opts.input_2;
-    std::cout << '\n';
 
-    std::cout << "Output file(s): " << opts.output_1;
-    if (opts.output_2.size())
-        std::cout << " and " << opts.output_2;
-    std::cout << '\n';
-
-    std:: cout << "mem limit: " << opts.memLimit << '\n';
     // actual logic
     // TODO: implement fasta support
     // TODO: implement gzipped files support : create tmp dir here and gunzip files to 
     // it before everythong else?
 
-   
     try {
-        BaseComparator* comp = makeComparator(opts.ctype, 
-                                             (opts.input_2.size() > 0));
+
+        bool paired = static_cast<bool>(opts.mode & Modes::PAIRED); // TODO is it actually needed?
+
+        FileUtils::TemporaryDirectory tempdir;
+
+        // verbose info, will be deleted
+        std::cout << "Input file(s): " << opts.input_1;
+        if (paired)
+            std::cout << " and " << opts.input_2;
+        std::cout << '\n';
+
+        std::cout << "Output file(s): " << opts.output_1;
+        if (paired)
+            std::cout << " and " << opts.output_2;
+        std::cout << '\n';
+
+        std:: cout << "mem limit: " << opts.memLimit << '\n';
+        // end of verbose info
+
+        BaseComparator* comp = makeComparator(opts.ctype, paired);
 
         if (opts.mode == Modes::BASE) {
             std:: cout << "seq, single, fastq\n";
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::FASTA) {
@@ -168,7 +179,7 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
@@ -178,7 +189,7 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == Modes::HASH) {
             std:: cout << "hash, single, fastq\n";
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, false); // TODO pass option here
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
@@ -187,9 +198,10 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             std::cout << "hash, paired, fastq\n";
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, false); // TODO pass option here
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir);
             remover.filterPE(opts.input_1, opts.input_2,
-                             opts.output_1, opts.output_2);
+                             opts.output_1, opts.output_2,
+                             opts.unordered);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
             std::cout << "hash, paired, fasta\n";

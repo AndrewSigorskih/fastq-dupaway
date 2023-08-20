@@ -1,6 +1,6 @@
 CC=g++
 INCFLAGS= -I $$BOOST_ROOT
-BOOST_LIBS= -lboost_program_options
+BOOST_LIBS= -lboost_program_options -lboost_iostreams
 CFLAGS=-Wall -Wextra -std=c++17 -O3 $(INCFLAGS)
 SRCDIR=src
 OBJDIR=obj

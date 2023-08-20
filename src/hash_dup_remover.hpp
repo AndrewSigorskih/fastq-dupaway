@@ -3,12 +3,15 @@
 #include <vector>
 #include <unordered_set>
 #include <boost/functional/hash.hpp>
+// maybe change hash_combine to https://stackoverflow.com/a/72073933
+// or https://www.biostars.org/p/184993/#185003
 
 #include "bufferedinput.hpp"
 #include "external_sort.hpp"
 #include "file_utils.hpp"
 
 using std::string;
+using FileUtils::TemporaryDirectory;
 struct setRecordHash;
 struct setRecordPairHash;
 const long ONE_MIL = 1000L * 1000L;
@@ -37,7 +40,7 @@ private:
     std::vector<uint64_t> m_l_hash, m_r_hash;
 };
 
-struct setRecordHash  // maybe change to https://stackoverflow.com/a/72073933
+struct setRecordHash
 {
     std::size_t operator()(const setRecord &item) const
     {
@@ -71,51 +74,40 @@ template<class T>
 class HashDupRemover
 {
 public:
-    HashDupRemover(ssize_t, bool);
-    ~HashDupRemover();
+    HashDupRemover(ssize_t, TemporaryDirectory*);
+    ~HashDupRemover() {}
     void filterSE(const string&, const string&);
     void filterPE(const string&, const string&,
-                  const string&, const string&);
+                  const string&, const string&,
+                  bool);
 private:
     void impl_filterSE(const char*, const char*);
     void impl_filterPE(const char*, const char*,
                        const char*, const char*);
 private:
     ssize_t m_memlimit;
-    char* m_tempdir;
-    bool m_to_sort;
+    TemporaryDirectory* m_tempdir;
 };
 
 template<class T>
-HashDupRemover<T>::HashDupRemover(ssize_t memlimit, bool to_sort)
+HashDupRemover<T>::HashDupRemover(ssize_t memlimit, TemporaryDirectory* tempdir)
 {
     this->m_memlimit = memlimit;
-    this->m_to_sort = to_sort;
-    m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
-    m_tempdir[constants::DIRNAME_LEN] = '\0';
-    create_random_dir(m_tempdir, constants::DIRNAME_LEN);
-}
-
-template<class T>
-HashDupRemover<T>::~HashDupRemover()
-{
-    FS::remove_all(m_tempdir);
-    free(m_tempdir);
+    this->m_tempdir = tempdir;
 }
 
 template<class T>
 void HashDupRemover<T>::filterSE(const string& infile,
                                  const string& outfile)
 {
-    string infilename = infile;
-    // TODO deal with gzipped input
+    // gunzip file if needed
+    m_tempdir->set_files(infile);
 
-    string filtered = (boost::format("%1%/result.out") % m_tempdir).str();
     // deduplicate file
-    this->impl_filterSE(infilename.c_str(), filtered.c_str());
+    this->impl_filterSE(m_tempdir->input1().c_str(), m_tempdir->output1().c_str());
 
-    // TODO deal with gzipped output
-    std::rename(filtered.c_str(), outfile.c_str());
+    // save output
+    m_tempdir->save_output(outfile);
 }
 
 template<class T>
@@ -135,7 +127,6 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     buffer.set_file(&input);
     obj = buffer.next();
     output << obj;
-    //records.insert(setRecord(obj.seq(), obj.seq_len()-1));
     records.insert(std::move(setRecord(obj.seq(), obj.seq_len()-1)));
 
     while (!buffer.eof())
@@ -153,48 +144,49 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
         }
         buffer.refresh();
     }
-    
 }
 
 template<class T>
 void HashDupRemover<T>::filterPE(const string& infile1,
                                  const string& infile2,
                                  const string& outfile1,
-                                 const string& outfile2)
+                                 const string& outfile2,
+                                 bool to_sort)
 {
-    string infilename1 = infile1, infilename2 = infile2;
-    string filtered1 = (boost::format("%1%/data.out1") % m_tempdir).str();
-    string filtered2 = (boost::format("%1%/data.out2") % m_tempdir).str();
-    // TODO deal with gzipped input here
+    // gunzip inputs if needed
+    m_tempdir->set_files(infile1, infile2);
+    string infilename1 = m_tempdir->input1();
+    string infilename2 = m_tempdir->input2();
 
-    // sort both files by ID
-    if (this->m_to_sort)
+    // sort both files by ID if needed
+    if (to_sort)
     {
-        string tmp1 = (boost::format("%1%/data.sorted1") % m_tempdir).str();
-        string tmp2 = (boost::format("%1%/data.sorted2") % m_tempdir).str();
+        string tmp1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
+        string tmp2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
 
         // sort first file
         {
-            ExternalSorter<T> sorter(m_memlimit, m_tempdir);
+            ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
             sorter.sort(infilename1.c_str(), tmp1.c_str());
         }
 
         // sort second file
         {
-            ExternalSorter<T> sorter(m_memlimit, m_tempdir);
+            ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
             sorter.sort(infilename2.c_str(), tmp2.c_str());
         }
 
         infilename1 = tmp1;
         infilename2 = tmp2;
+        // TODO remove ungzipped inputs here?
     }
 
     // deduplicate 2 files
     this->impl_filterPE(infilename1.c_str(), infilename2.c_str(),
-                        filtered1.c_str(), filtered2.c_str());
-    // TODO gzip if output is gz else
-    std::rename(filtered1.c_str(), outfile1.c_str());
-    std::rename(filtered2.c_str(), outfile2.c_str());
+                        m_tempdir->output1().c_str(),
+                        m_tempdir->output2().c_str());
+    // save outputs
+    m_tempdir->save_output(outfile1, outfile2);
 }
 
 template<class T>
