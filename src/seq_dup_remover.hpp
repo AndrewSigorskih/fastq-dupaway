@@ -50,7 +50,9 @@ void SeqDupRemover<T>::filterSE(const string& infile,
         ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
         sorter.sort(m_tempdir->input1().c_str(), sorted.c_str());
     }
-    // TODO remove ungzipped input here?
+    // remove ungzipped input (or input symlink) here
+    m_tempdir->clear_inputs();
+
     // deduplicate file
     this->impl_filterSE(sorted.c_str(), m_tempdir->output1().c_str());
     
@@ -108,7 +110,8 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
                     sorted1.c_str(),
                     sorted2.c_str());
     }
-    // TODO remove ungzipped input here?
+    // remove ungzipped inputs (or input symlinks) here
+    m_tempdir->clear_inputs();
 
     this->impl_filterPE(sorted1.c_str(),
                         sorted2.c_str(),

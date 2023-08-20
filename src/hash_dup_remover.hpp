@@ -104,7 +104,8 @@ void HashDupRemover<T>::filterSE(const string& infile,
     m_tempdir->set_files(infile);
 
     // deduplicate file
-    this->impl_filterSE(m_tempdir->input1().c_str(), m_tempdir->output1().c_str());
+    this->impl_filterSE(m_tempdir->input1().c_str(),
+                        m_tempdir->output1().c_str());
 
     // save output
     m_tempdir->save_output(outfile);
@@ -178,7 +179,9 @@ void HashDupRemover<T>::filterPE(const string& infile1,
 
         infilename1 = tmp1;
         infilename2 = tmp2;
-        // TODO remove ungzipped inputs here?
+
+        // remove ungzipped inputs (or input symlinks) here
+        m_tempdir->clear_inputs();
     }
 
     // deduplicate 2 files

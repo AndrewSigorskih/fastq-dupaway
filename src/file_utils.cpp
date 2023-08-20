@@ -38,7 +38,21 @@ void FileUtils::_decompress_gz(const char* infilename, const char* outfilename)
     inbuf.push(boost::iostreams::gzip_decompressor());
     inbuf.push(infile);
     boost::iostreams::copy(inbuf, outfile);
-    //infile.close();
+}
+
+void FileUtils::_compress_gz(const char* infilename, const char* outfilename)
+{
+    std::ifstream infile(infilename);
+    std::ofstream outfile(outfilename, std::ios_base::out | std::ios_base::binary);
+    check_fstream_ok<std::ifstream>(infile, infilename);
+    check_fstream_ok<std::ofstream>(outfile, outfilename);
+
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    inbuf.push(boost::iostreams::gzip_compressor());
+    inbuf.push(infile);
+    boost::iostreams::copy(inbuf, outfile);
+
+    boost::iostreams::close(inbuf);
 }
 
 void FileUtils::create_random_dir(char* buf, int len, uint n_tries)
@@ -68,6 +82,17 @@ FileUtils::TemporaryDirectory::~TemporaryDirectory()
 {
     FS::remove_all(m_name);
     free(m_name);
+}
+
+void FileUtils::TemporaryDirectory::clear_inputs()
+{
+    std::remove(this->m_input1.c_str());
+    this->m_input1.clear();
+    if (this->m_input2.size() > 0)
+    {
+        std::remove(this->m_input2.c_str());
+        this->m_input2.clear();
+    }
 }
 
 void FileUtils::TemporaryDirectory::set_files(const string& input)
@@ -103,7 +128,7 @@ void FileUtils::TemporaryDirectory::save_output(const string& output)
 {
     if (FileUtils::_fileHasExt(output.c_str()))
     {
-        throw std::runtime_error("gzipped outputs are not supported yet!");
+        FileUtils::_compress_gz(this->m_output1.c_str(), output.c_str());
     } else {
         std::rename(this->m_output1.c_str(), output.c_str());
     }
@@ -116,7 +141,7 @@ void FileUtils::TemporaryDirectory::save_output(const string& output1,
 
     if (FileUtils::_fileHasExt(output2.c_str()))
     {
-        throw std::runtime_error("gzipped outputs are not supported yet!");
+        FileUtils::_compress_gz(this->m_output2.c_str(), output2.c_str());
     } else {
         std::rename(this->m_output2.c_str(), output2.c_str());
     }

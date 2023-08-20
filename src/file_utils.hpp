@@ -28,6 +28,7 @@ namespace FileUtils
         inline const string& input2() const { return this->m_input2; }
         inline const string& output1() const { return this->m_output1; }
         inline const string& output2() const { return this->m_output2; }
+        void clear_inputs();
         void set_files(const string&);
         void set_files(const string&, const string&);
         void save_output(const string&);
