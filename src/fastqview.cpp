@@ -168,7 +168,7 @@ FastqViewWithId& FastqViewWithId::operator=(FastqViewWithId&& other)
 int FastqViewWithId::cmp(const FastqViewWithId& other) const
 {
     int res = strncmp(this->m_idtag, other.m_idtag,
-                   std::min(this->m_idtag_len, other.m_idtag_len));
+                      std::min(this->m_idtag_len, other.m_idtag_len));
 
     if ((res==0) && (this->m_idtag_len < other.m_idtag_len))
         return -1;

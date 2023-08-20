@@ -30,6 +30,7 @@ struct Options
     ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
     ComparatorType ctype = ComparatorType::CT_TIGHT;
+    uint hammdist = 5;
     bool unordered = false;
 };
 
@@ -46,7 +47,7 @@ bool parse_args(int argc, char** argv, Options& opts)
         ("output-1,o", po::value<string>(&opts.output_1)->required(), "First output file (required)")
         ("output-2,p", po::value<string>(&opts.output_2), "Second output file (optional, required for paired-end mode)")
         ("mem-limit,m", po::value<ssize_t>(), "Memory limit in megabytes (default 2048 = 2Gb).\n"
-                                              "Supported value range is [100 <-> 10240 (10 Gb)]\n"
+                                              "Supported value range is [500 <-> 10240 (10 Gb)]\n"
                                               "Actual memory usage will slightly exceed this value.\n"
                                               "NB: The hash-based deduplication mode does not support strict memory limitation.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta.")
@@ -54,7 +55,11 @@ bool parse_args(int argc, char** argv, Options& opts)
                                              "Supported options:\n"
                                              "\ttight (default): compare sequences directly, sequences of different lengths are considered different.\n"
                                              "\tloose: compare sequences directly, sequences of different lengths are considered duplicates if shorter"
-                                             " sequence exactly matches with prefix of longer sequence.")
+                                             " sequence exactly matches with prefix of longer sequence.\n"
+                                             "\thamming: consider a pair of sequnces as duplicates if their Hamming distance is less or equal than"
+                                             " threshold (default 5).")
+        ("distance", po::value<uint>(&opts.hammdist), "A threshold value for Hamming distance calculation. Should be a non-negative integer."
+                                                      " Default value is 5.")
         ("hashed", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
                                                "With this mode the program will run significantly faster, however no memory limit can be set"
                                                " and only complete duplicates will be filtered out.")
@@ -101,6 +106,8 @@ bool parse_args(int argc, char** argv, Options& opts)
                 ;
             else if (value == "loose")
                 opts.ctype = ComparatorType::CT_LOOSE;
+            else if (value == "hamming")
+                opts.ctype = ComparatorType::CT_HAMMING;
             else
                 throw std::runtime_error("Unsupported compare-seq type provided!");
         }
@@ -116,7 +123,7 @@ bool parse_args(int argc, char** argv, Options& opts)
         if (vm.count("mem-limit"))
         {
             ssize_t value = vm["mem-limit"].as<ssize_t>();
-            if ((value >= 100L) && (value <= 10240L))
+            if ((value >= 500L) && (value <= 10240L))
                 opts.memLimit = value * constants::ONE_MB;
         }
     }
@@ -143,12 +150,12 @@ int main(int argc, char** argv)
 
     // actual logic
     // TODO: implement fasta support
-    // TODO: implement gzipped files support : create tmp dir here and gunzip files to 
-    // it before everythong else?
+    // TODO more comparators?
+    // TODO add "basicTemporaryDirectory" class to be used in external-sort classes
 
     try {
 
-        bool paired = static_cast<bool>(opts.mode & Modes::PAIRED); // TODO is it actually needed?
+        bool paired = static_cast<bool>(opts.mode & Modes::PAIRED);
 
         FileUtils::TemporaryDirectory tempdir;
 
@@ -166,7 +173,7 @@ int main(int argc, char** argv)
         std:: cout << "mem limit: " << opts.memLimit << '\n';
         // end of verbose info
 
-        BaseComparator* comp = makeComparator(opts.ctype, paired);
+        BaseComparator* comp = makeComparator(opts.ctype, paired, opts.hammdist);
 
         if (opts.mode == Modes::BASE) {
             std:: cout << "seq, single, fastq\n";

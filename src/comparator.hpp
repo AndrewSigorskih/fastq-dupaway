@@ -3,8 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
-
-#include <iostream> // delete this!
+#include "seq_utils.hpp"
 
 const ssize_t STARTING_SEQ_SIZE = 150L;
 
@@ -12,7 +11,8 @@ enum ComparatorType
 {
     CT_NONE,
     CT_TIGHT,
-    CT_LOOSE
+    CT_LOOSE,
+    CT_HAMMING
 };
 
 class BaseComparator
@@ -47,5 +47,15 @@ public:
     bool compare(const char*, ssize_t, const char*, ssize_t);
 };
 
+class HammingComparator : public BaseComparator
+{
+public:
+    HammingComparator(bool, uint);
+    bool compare(const char*, ssize_t);
+    bool compare(const char*, ssize_t, const char*, ssize_t);
+private:
+    uint m_dist;
+};
+
 // comparator factory
-BaseComparator* makeComparator(ComparatorType, bool);
+BaseComparator* makeComparator(ComparatorType, bool, uint);

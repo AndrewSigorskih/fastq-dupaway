@@ -13,4 +13,5 @@ namespace SeqUtils
     void seq2hash(std::vector<uint64_t>&, const char*, ssize_t);
 
     int seqncmp(const char*, const char*, size_t);
+    uint hammingDistance(const char*, const char*, ssize_t);
 }

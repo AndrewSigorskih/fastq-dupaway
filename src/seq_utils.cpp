@@ -61,3 +61,12 @@ int SeqUtils::seqncmp(const char* s1, const char* s2, size_t len)
         return 0;
     return SeqUtils::_char2number(*s1) - SeqUtils::_char2number(*s2);
 }
+
+uint SeqUtils::hammingDistance(const char* seq_1, const char* seq_2, ssize_t len)
+{
+    uint res = 0;
+    for (ssize_t i = 0; i < len; ++i)
+        if (seq_1[i] != seq_2[i])
+            ++res;
+    return res;
+}
