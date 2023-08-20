@@ -11,6 +11,7 @@
 using std::string;
 struct setRecordHash;
 struct setRecordPairHash;
+const long ONE_MIL = 1000L * 1000L;
 
 class setRecord
 {
@@ -19,7 +20,6 @@ public:
     setRecord(const char*, ssize_t);
     bool operator==(const setRecord&) const;
     friend setRecordHash;
-    //inline uint64_t hash_prefix() const { return m_hash[0]; }
 private:
     ssize_t m_seq_len;
     std::vector<uint64_t> m_hash;
@@ -32,7 +32,6 @@ public:
     setRecordPair(const char*, ssize_t, const char*, ssize_t);
     bool operator==(const setRecordPair&) const;
     friend setRecordPairHash;
-    //inline uint64_t hash_prefix() const { return this->m_l_hash[0]; }
 private:
     ssize_t m_l_len, m_r_len;
     std::vector<uint64_t> m_l_hash, m_r_hash;
@@ -130,7 +129,7 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
 
     T obj;
     hashed_set records;
-    records.reserve(100000L);  // TODO optimize this value
+    records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> buffer(5L * constants::HUNDRED_MB);
 
     buffer.set_file(&input);
@@ -191,7 +190,7 @@ void HashDupRemover<T>::filterPE(const string& infile1,
     }
 
     // deduplicate 2 files
-    this->impl_filterPE(infilename1.c_str(), infilename1.c_str(),
+    this->impl_filterPE(infilename1.c_str(), infilename2.c_str(),
                         filtered1.c_str(), filtered2.c_str());
     // TODO gzip if output is gz else
     std::rename(filtered1.c_str(), outfile1.c_str());
@@ -215,7 +214,7 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
 
     T left, right;
     paired_hashed_set records;
-    records.reserve(100000L);  // TODO optimize this value
+    records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> left_buffer(5L * constants::HUNDRED_MB), right_buffer(5L * constants::HUNDRED_MB);
     left_buffer.set_file(&input1);
     right_buffer.set_file(&input2);
