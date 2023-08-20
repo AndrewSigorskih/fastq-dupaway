@@ -30,7 +30,7 @@ struct Options
     ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
     ComparatorType ctype = ComparatorType::CT_TIGHT;
-    uint hammdist = 5;
+    uint hammdist = 2;
     bool unordered = false;
 };
 
@@ -57,9 +57,9 @@ bool parse_args(int argc, char** argv, Options& opts)
                                              "\tloose: compare sequences directly, sequences of different lengths are considered duplicates if shorter"
                                              " sequence exactly matches with prefix of longer sequence.\n"
                                              "\thamming: consider a pair of sequnces as duplicates if their Hamming distance is less or equal than"
-                                             " threshold (default 5).")
+                                             " threshold (default 2). Sequences of different lengths will not be compared.")
         ("distance", po::value<uint>(&opts.hammdist), "A threshold value for Hamming distance calculation. Should be a non-negative integer."
-                                                      " Default value is 5.")
+                                                      " Default value is 2.")
         ("hashed", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
                                                "With this mode the program will run significantly faster, however no memory limit can be set"
                                                " and only complete duplicates will be filtered out.")

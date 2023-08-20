@@ -87,8 +87,6 @@ FileUtils::TemporaryDirectory::~TemporaryDirectory()
 void FileUtils::TemporaryDirectory::clear_inputs()
 {
     std::remove(this->m_input1.c_str());
-    std::cout << "called inp file removal!" << std::endl;
-    std::cin.get();
     this->m_input1.clear();
     if (this->m_input2.size() > 0)
     {
