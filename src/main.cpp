@@ -4,6 +4,7 @@
 
 #include "constants.hpp"
 #include "comparator.hpp"
+#include "fastaview.hpp"
 #include "fastqview.hpp"
 #include "seq_dup_remover.hpp"
 #include "hash_dup_remover.hpp"
@@ -149,9 +150,8 @@ int main(int argc, char** argv)
         return 1;
 
     // actual logic
-    // TODO: implement fasta support
     // TODO more comparators?
-    // TODO add "basicTemporaryDirectory" class to be used in external-sort classes
+    // TODO add "basicTemporaryDirectory" class to be used in external-sort classes?
 
     try {
 
@@ -182,7 +182,8 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == Modes::FASTA) {
             std::cout << "seq, single, fasta\n";
-            std::cerr << "This mode is not properly implemented yet!\n";
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
+            remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::PAIRED) {
             std:: cout << "seq, paired, fastq\n";
@@ -192,16 +193,19 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
             std::cout << "seq, paired, fasta\n";
-            std::cerr << "This mode is not properly implemented yet!\n";
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
+            remover.filterPE(opts.input_1, opts.input_2,
+                             opts.output_1, opts.output_2);
 
         } else if (opts.mode == Modes::HASH) {
             std:: cout << "hash, single, fastq\n";
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir); // TODO WithId -> ordinary?
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
             std::cout << "hash, single, fasta\n";
-            std::cerr << "This mode is not properly implemented yet!\n";
+            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir); // TODO WithId -> ordinary?
+            remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             std::cout << "hash, paired, fastq\n";
@@ -212,7 +216,10 @@ int main(int argc, char** argv)
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
             std::cout << "hash, paired, fasta\n";
-            std::cerr << "This mode is not properly implemented yet!\n";
+            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir);
+            remover.filterPE(opts.input_1, opts.input_2,
+                             opts.output_1, opts.output_2,
+                             opts.unordered);
 
         } else {
             std::cerr << "Unknown mode!\n";

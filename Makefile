@@ -4,7 +4,7 @@ BOOST_LIBS= -lboost_program_options -lboost_iostreams
 CFLAGS=-Wall -Wextra -std=c++17 -O3 $(INCFLAGS)
 SRCDIR=src
 OBJDIR=obj
-LIBOBJ = $(addprefix $(OBJDIR)/, fastqview.o file_utils.o comparator.o seq_utils.o hash_dup_remover.o)
+LIBOBJ = $(addprefix $(OBJDIR)/, fastaview.o fastqview.o file_utils.o seq_utils.o comparator.o hash_dup_remover.o)
 MAINOBJ = $(OBJDIR)/main.o
 
 all: fastq-dupaway
