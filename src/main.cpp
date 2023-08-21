@@ -62,12 +62,12 @@ bool parse_args(int argc, char** argv, Options& opts)
         ("distance", po::value<uint>(&opts.hammdist), "A threshold value for Hamming distance calculation. Should be a non-negative integer."
                                                       " Default value is 2.")
         ("hashed", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
-                                               "With this mode the program will run significantly faster, however no memory limit can be set"
+                                               "In this mode the program will run significantly faster, however no memory limit can be set"
                                                " and only complete duplicates will be filtered out.")
         ("unordered", po::bool_switch(&opts.unordered), "This option is supported only by hash mode for paired inputs.\n"
                                                         "Enable this flag if reads in your paired input files are not synchronized"
                                                         " (i.e. the reads order determined by read IDs does not match).\n"
-                                                        "If this option is enabled, the both input files will be sorted by read IDs before deduplication.")
+                                                        "If this option is enabled, both input files will be sorted by read IDs before deduplication.")
         ;
         // Parse command line arguments
         po::variables_map vm;
