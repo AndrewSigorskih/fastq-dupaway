@@ -149,29 +149,11 @@ int main(int argc, char** argv)
     if (!result)
         return 1;
 
-    // actual logic
-    // TODO more comparators?
-    // TODO add "basicTemporaryDirectory" class to be used in external-sort classes?
-
     try {
 
         bool paired = static_cast<bool>(opts.mode & Modes::PAIRED);
 
         FileUtils::TemporaryDirectory tempdir;
-
-        // verbose info, will be deleted
-        std::cout << "Input file(s): " << opts.input_1;
-        if (paired)
-            std::cout << " and " << opts.input_2;
-        std::cout << '\n';
-
-        std::cout << "Output file(s): " << opts.output_1;
-        if (paired)
-            std::cout << " and " << opts.output_2;
-        std::cout << '\n';
-
-        std:: cout << "mem limit: " << opts.memLimit << '\n';
-        // end of verbose info
 
         BaseComparator* comp = makeComparator(opts.ctype, paired, opts.hammdist);
 
@@ -220,7 +202,6 @@ int main(int argc, char** argv)
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
                              opts.unordered);
-
         } else {
             std::cerr << "Unknown mode!\n";
         }

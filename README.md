@@ -9,9 +9,9 @@ fastq-dupaway offers two main working modes depending on user's needs:
 
 ## Installation
 
-The only dependency is Boost. Once it is installed, <ins>export shell variable</ins> <i>BOOST_ROOT</i> pointing to its root directory and then run make.<br>
+The only dependency is Boost. Once it is installed, <ins>export shell variable</ins> <i>BOOST_ROOT</i> pointing to its header files root directory and then run make.<br>
 If you installed Boost from source as admin, it is likely to be <b>/usr/include</b> or any other dir you specified during installation.<br>
-Otherwise, if you used conda (miniconda3 in this example) and installed Boost in virtual env <i>ENVNAME</i> the path will be <b>$HOME/miniconda3/envs/ENVNAME/include</b> .
+Otherwise, if you used conda (miniconda3 in this example) and installed Boost in virtual env <i>ENVNAME</i> the path will be <b>$HOME/miniconda3/envs/ENVNAME/include</b>. In that case, make sure you are using conda-installed compiler (gcc) that can find compiled boost binaries.
 
 ```
 export BOOST_ROOT=/PATH/TO/BOOST/ROOT/FOLDER
@@ -22,18 +22,33 @@ make
 
 In order to install Boost from source, you will need admin rights.<br>
 Download source code from official site, configure bootstrap.sh and install:
-```
+
+```bash
 wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.tar.gz
 tar xvf boost_1_81_0.tar.gz
 cd boost_1_81_0
-# these commands will save compiled library files under /usr/include/boost
+# The following commands will save boost headers under /usr/include/boost
+# and compiled boost binaries under /usr/lib
 ./bootstrap.sh --prefix=/usr/
 sudo ./b2 install
 ```
 
 Alternativaly, you can easily install Boost via conda.
-```
+
+```bash
 conda install -c conda-forge boost
+```
+
+### Complete conda-based installation example
+
+```bash
+conda create -n gcc-boost -c conda-forge gcc make boost
+conda activate gcc-boost
+export BOOST_ROOT=~/miniconda3/envs/gcc-boost/include
+
+cd fastq-dupaway
+make
+make clean
 ```
 
 ## Usage
@@ -55,7 +70,7 @@ Option|Value|Description
 -p/--output-2|string|Second output file (required for paired-end mode).
 -m/--mem-limit|integer in range [500, 10240]|Memory limit in megabytes (default 2048 = 2Gb).<br>The hashtable-based deduplication mode does not support strict memory limitation.
 --format|either "fastq" (default) or "fasta"|Input file format.
---compare-seq|string (see description)|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence.<br>- "hamming": consider a pair of sequnces as duplicates if their Hamming distance is less or equal than threshold. Sequences of different lengths will not be compared.
+--compare-seq|string (see description)|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence. Outputs of this mode will be similar to those of "fastuniq" program.<br>- "hamming": consider a pair of sequnces as duplicates if their Hamming distance is less or equal than threshold. Sequences of different lengths will not be compared.
 --distance|non-negative integer|A threshold value for Hamming distance calculation. Default value is 2.
 --hashed|-|Use hash-based approach instead of sequence-based. In this mode the program will run significantly faster, however no memory limit can be set and only complete duplicates will be filtered out.
 --unordered|-|This option is supported only by hash mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the reads order determined by read IDs does not match). If this option is enabled, both input files will be sorted by read IDs before deduplication.
