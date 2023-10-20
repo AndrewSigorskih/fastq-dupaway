@@ -23,6 +23,7 @@ private:
     void impl_filterPE(const char*, const char*,
                        const char*, const char*);
 private:
+    bool m_loose_comp = false;
     ssize_t m_memlimit;
     BaseComparator* m_comparator;
     TemporaryDirectory* m_tempdir;
@@ -36,6 +37,11 @@ SeqDupRemover<T>::SeqDupRemover(ssize_t memlimit,
     m_memlimit = memlimit;
     m_comparator = comparator;
     m_tempdir = tempdir;
+    // perform longest duplicate save only for loose mode to save perfomance
+    if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
+    {  
+        m_loose_comp = true;
+    }
 }
 
 template<class T>
@@ -160,11 +166,12 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                                             right.seq(), right.seq_len());
                 output1 << left;
                 output2 << right;
-            } else if ((this->m_comparator->left_len() <= left.seq_len()) \
+            } else if ( m_loose_comp \
+                    && (this->m_comparator->left_len() <= left.seq_len()) \
                     && (this->m_comparator->right_len() <= right.seq_len()))
             {
-               // current pair is same, but we need to keep the longest one as a reference
-               // this will not affect tight mode
+               // current pair is a duplicate, but we need to keep the longest one as a reference
+               // this will not affect tight or hamming modes
                this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                            right.seq(), right.seq_len());
             }
