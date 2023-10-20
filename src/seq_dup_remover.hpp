@@ -91,6 +91,11 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
                 output << obj;
+            } else if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
+            {
+                // current sequence is a duplicate, but we need to keep the longest one as a reference
+               // this will not affect tight or hamming modes
+               this->m_comparator->set_seq(obj.seq(), obj.seq_len());
             }
         }
         buffer.refresh();
@@ -170,7 +175,7 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                     && (this->m_comparator->left_len() <= left.seq_len()) \
                     && (this->m_comparator->right_len() <= right.seq_len()))
             {
-               // current pair is a duplicate, but we need to keep the longest one as a reference
+                // current pair is a duplicate, but we need to keep the longest one as a reference
                // this will not affect tight or hamming modes
                this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                            right.seq(), right.seq_len());
