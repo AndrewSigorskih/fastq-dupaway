@@ -24,6 +24,8 @@ public:
     void set_seq(const char*, ssize_t, const char*, ssize_t);
     virtual bool compare(const char*, ssize_t) = 0;
     virtual bool compare(const char*, ssize_t, const char*, ssize_t) = 0;
+    inline ssize_t left_len() const { return this->m_len_1; }
+    inline ssize_t right_len() const { return this->m_len_2; }
 protected:
     char* m_buf_1 = nullptr;
     char* m_buf_2 = nullptr;

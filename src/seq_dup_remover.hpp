@@ -155,11 +155,16 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
             right = right_buffer.next();
             if (!(this->m_comparator->compare(left.seq(), left.seq_len(),
                                               right.seq(), right.seq_len())))
-            {
+            {  // current pair differs -> load it as a new ref
                 this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                             right.seq(), right.seq_len());
                 output1 << left;
                 output2 << right;
+            } else if ((this->m_comparator->left_len() < left.seq_len()) \
+                    && (this->m_comparator->right_len() < right.seq_len())) {
+               // current pair is same, but we need to keep the longest one as a reference
+               this->m_comparator->set_seq(left.seq(), left.seq_len(),
+                                           right.seq(), right.seq_len());
             }
         }
         left_buffer.refresh();
