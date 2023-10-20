@@ -23,6 +23,7 @@ private:
     void impl_filterPE(const char*, const char*,
                        const char*, const char*);
 private:
+    bool m_loose_comp = false;
     ssize_t m_memlimit;
     BaseComparator* m_comparator;
     TemporaryDirectory* m_tempdir;
@@ -36,6 +37,11 @@ SeqDupRemover<T>::SeqDupRemover(ssize_t memlimit,
     m_memlimit = memlimit;
     m_comparator = comparator;
     m_tempdir = tempdir;
+    // perform longest duplicate save only for loose mode to save perfomance
+    if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
+    {  
+        m_loose_comp = true;
+    }
 }
 
 template<class T>
@@ -85,6 +91,11 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
                 output << obj;
+            } else if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
+            {
+                // current sequence is a duplicate, but we need to keep the longest one as a reference
+               // this will not affect tight or hamming modes
+               this->m_comparator->set_seq(obj.seq(), obj.seq_len());
             }
         }
         buffer.refresh();
@@ -155,11 +166,19 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
             right = right_buffer.next();
             if (!(this->m_comparator->compare(left.seq(), left.seq_len(),
                                               right.seq(), right.seq_len())))
-            {
+            {  // current pair differs -> load it as a new ref
                 this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                             right.seq(), right.seq_len());
                 output1 << left;
                 output2 << right;
+            } else if ( m_loose_comp \
+                    && (this->m_comparator->left_len() <= left.seq_len()) \
+                    && (this->m_comparator->right_len() <= right.seq_len()))
+            {
+                // current pair is a duplicate, but we need to keep the longest one as a reference
+               // this will not affect tight or hamming modes
+               this->m_comparator->set_seq(left.seq(), left.seq_len(),
+                                           right.seq(), right.seq_len());
             }
         }
         left_buffer.refresh();

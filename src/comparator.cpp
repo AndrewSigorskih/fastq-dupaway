@@ -67,7 +67,10 @@ bool LooseComparator::compare(const char* seq_1, ssize_t len_1,
 {  // similar to fastuniq's "compare_loose"
     bool first_cmp = this->compare(seq_1, len_1);
     if (!first_cmp) return false;
-    return (strncmp(seq_2, m_buf_2, std::min(len_2-1, m_len_2-1)) == 0);
+    bool second_cmp = (strncmp(seq_2, m_buf_2, std::min(len_2-1, m_len_2-1)) == 0);
+    if (!second_cmp) return false;
+    // only return true if both overlaps are same-sided
+    return ((m_len_1 <= len_1) && (m_len_2 <= len_2)) || ((m_len_1 > len_1) && (m_len_2 > len_2));
 }
 
 HammingComparator::HammingComparator(bool paired, uint dist) : BaseComparator(paired), m_dist(dist) { }
