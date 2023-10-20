@@ -161,9 +161,10 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                 output1 << left;
                 output2 << right;
             } else if ((this->m_comparator->left_len() < left.seq_len()) \
-                    && (this->m_comparator->right_len() < right.seq_len())) {
+                    && (this->m_comparator->right_len() < right.seq_len()))
+            {
                // current pair is same, but we need to keep the longest one as a reference
-               // this will not? affect tight mode
+               // this will not affect tight mode
                this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                            right.seq(), right.seq_len());
             }
