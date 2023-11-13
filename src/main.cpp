@@ -158,46 +158,48 @@ int main(int argc, char** argv)
         BaseComparator* comp = makeComparator(opts.ctype, paired, opts.hammdist);
 
         if (opts.mode == Modes::BASE) {
-            std:: cout << "seq, single, fastq\n";
+            // seq, single, fastq
             SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::FASTA) {
-            std::cout << "seq, single, fasta\n";
+            // seq, single, fasta
             SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::PAIRED) {
-            std:: cout << "seq, paired, fastq\n";
+            // seq, paired, fastq
             SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
-            std::cout << "seq, paired, fasta\n";
+            // seq, paired, fasta
             SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == Modes::HASH) {
-            std:: cout << "hash, single, fastq\n";
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir); // TODO WithId -> ordinary?
+            // hash, single, fastq
+            //HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir); // slight optimization
+            HashDupRemover<FastqView> remover(opts.memLimit, &tempdir);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
-            std::cout << "hash, single, fasta\n";
-            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir); // TODO WithId -> ordinary?
+            // hash, single, fasta
+            //HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir); // slight optimization
+            HashDupRemover<FastaView> remover(opts.memLimit, &tempdir);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
-            std::cout << "hash, paired, fastq\n";
+            // hash, paired, fastq
             HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
                              opts.unordered);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
-            std::cout << "hash, paired, fasta\n";
+            // hash, paired, fasta
             HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
