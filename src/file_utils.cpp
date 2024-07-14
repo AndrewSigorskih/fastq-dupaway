@@ -55,6 +55,18 @@ void FileUtils::_compress_gz(const char* infilename, const char* outfilename)
     boost::iostreams::close(inbuf);
 }
 
+void FileUtils::_copy_and_remove_file(const char* infilename, const char* outfilename)
+{
+    std::ifstream infile(infilename);
+    std::ofstream outfile(outfilename);
+    check_fstream_ok<std::ifstream>(infile, infilename);
+    check_fstream_ok<std::ofstream>(outfile, outfilename);
+
+    outfile << infile.rdbuf();
+
+    std::remove(infilename);
+}
+
 void FileUtils::create_random_dir(char* buf, int len, uint n_tries)
 {
     while (true)
@@ -130,7 +142,9 @@ void FileUtils::TemporaryDirectory::save_output(const string& output)
     {
         FileUtils::_compress_gz(this->m_output1.c_str(), output.c_str());
     } else {
-        std::rename(this->m_output1.c_str(), output.c_str());
+        // cannot "rename" files across FS volumes
+        //std::rename(this->m_output1.c_str(), output.c_str());
+        FileUtils::_copy_and_remove_file(this->m_output1.c_str(), output.c_str());
     }
 }
 
@@ -143,6 +157,8 @@ void FileUtils::TemporaryDirectory::save_output(const string& output1,
     {
         FileUtils::_compress_gz(this->m_output2.c_str(), output2.c_str());
     } else {
-        std::rename(this->m_output2.c_str(), output2.c_str());
+        // cannot "rename" files across FS volumes
+        //std::rename(this->m_output2.c_str(), output2.c_str());
+        FileUtils::_copy_and_remove_file(this->m_output2.c_str(), output2.c_str());
     }
 }

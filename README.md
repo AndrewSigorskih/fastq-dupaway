@@ -9,13 +9,32 @@ fastq-dupaway offers two main working modes depending on user's needs:
 
 ## Installation
 
-The only dependency is Boost. Once it is installed, <ins>export shell variable</ins> <i>BOOST_ROOT</i> pointing to its header files root directory and then run make.<br>
-If you installed Boost from source as admin, it is likely to be <b>/usr/include</b> or any other dir you specified during installation.<br>
-Otherwise, if you used conda (miniconda3 in this example) and installed Boost in virtual env <i>ENVNAME</i> the path will be <b>$HOME/miniconda3/envs/ENVNAME/include</b>. In that case, make sure you are using conda-installed compiler (gcc) that can find compiled boost binaries.
+### Building a Docker image (recommended)
 
+Clone this repository and build image:
+
+```bash
+docker build -t fastq-dupaway .
+# check that everything went as expected (should print help message and exit):
+docker run -it --rm fastq-dupaway --help
 ```
-export BOOST_ROOT=/PATH/TO/BOOST/ROOT/FOLDER
-make
+
+### Manual installation (using conda or system-level boost installation)
+
+The only dependency is Boost. This program was developed and tested using Boost libraries version 1.81.0.
+
+#### Setting up shell variables
+
+Before installing Boost, <ins>set up shell variables</ins>:
+
+* Create shell variable <i>BOOST_ROOT</i> pointing the desired root directory of your boost installation.<br>
+Boost installed will place header-only libraries and built shared object files in include/ and lib/ folders under this root directory, respectively.<br>
+If you are using conda, assign this variable to your conda env path (see example below).
+
+* If your LD_LIBRARY_PATH variable does not contain path to built boost shared object files, add that path to it (you will probably need to set this in your .bashrc file as well for further usage):<br>
+
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/your/custom/path/
 ```
 
 #### How to install BOOST
@@ -24,34 +43,54 @@ In order to install Boost from source, you will need admin rights.<br>
 Download source code from official site, configure bootstrap.sh and install:
 
 ```bash
+export BOOST_ROOT=/usr/local
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BOOST_ROOT}/lib
+
 wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.tar.gz
 tar xvf boost_1_81_0.tar.gz
 cd boost_1_81_0
-# The following commands will save boost headers under /usr/include/boost
-# and compiled boost binaries under /usr/lib
-./bootstrap.sh --prefix=/usr/
-sudo ./b2 install
+# The following commands will save boost headers under /usr/local/include/boost
+# and compiled boost binaries (needed ones only) under /usr/local/lib
+./bootstrap.sh --prefix=${BOOST_ROOT}
+sudo ./b2 install --with-iostreams --with-program_options --build-dir=/tmp/build-boost
 ```
 
-Alternativaly, you can easily install Boost via conda.
+Alternativaly, you can easily install Boost via conda.<br>
+You will also need g++ and make installed in your conda environment as well.
 
 ```bash
-conda install -c conda-forge boost
+conda create -n gxx-boost -c conda-forge gxx make boost=1.82.0
+conda activate gxx-boost
+export BOOST_ROOT=~/miniconda3/envs/gxx-boost
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BOOST_ROOT}/lib
 ```
 
-### Complete conda-based installation example
+### Clone this repo and build executable
 
 ```bash
-conda create -n gcc-boost -c conda-forge gcc make boost
-conda activate gcc-boost
-export BOOST_ROOT=~/miniconda3/envs/gcc-boost/include
-
 cd fastq-dupaway
 make
 make clean
+# check that everything went as expected (should print help message and exit):
+./fastq-dupaway --help
 ```
 
 ## Usage
+
+### Running Docker image
+
+Mount volume with your data directories while running docker image:
+
+```bash
+# set WORKDIR variable to point to your project working directory
+# Directories ${WORKDIR}/inputs and ${WORKDIR}/outputs should exist
+docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
+        -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
+```
+
+NB: fastq-dupaway requries a lot of disk space (~2.5-3 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. In order to configure allowed disk space when running container, use [docker run storage options](https://docs.docker.com/reference/cli/docker/container/run/#storage-opt).
+
+### Program options
 
 ```
 fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
