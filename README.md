@@ -84,7 +84,8 @@ Mount volume with your data directories while running docker image:
 ```bash
 # set WORKDIR variable to point to your project working directory
 # Directories ${WORKDIR}/inputs and ${WORKDIR}/outputs should exist
-docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
+docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
+        -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
 ```
 
 NB: fastq-dupaway requries a lot of disk space (~2.5-3 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. In order to configure allowed disk space when running container, use [docker run storage options](https://docs.docker.com/reference/cli/docker/container/run/#storage-opt).
