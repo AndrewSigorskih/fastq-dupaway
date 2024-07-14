@@ -16,7 +16,7 @@ Clone this repository and build image:
 ```bash
 docker build -t fastq-dupaway .
 # check that everything went as expected (should print help message and exit):
-docker run fastq-dupaway --help
+docker run -it --rm fastq-dupaway --help
 ```
 
 ### Manual installation (using conda or system-level boost installation)
