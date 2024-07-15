@@ -28,7 +28,7 @@ The only dependency is Boost. This program was developed and tested using Boost 
 Before installing Boost, <ins>set up shell variables</ins>:
 
 * Create shell variable <i>BOOST_ROOT</i> pointing the desired root directory of your boost installation.<br>
-Boost installed will place header-only libraries and built shared object files in include/ and lib/ folders under this root directory, respectively.<br>
+Boost installer will place header-only libraries and built shared object files in include/ and lib/ folders under this root directory, respectively.<br>
 If you are using conda, assign this variable to your conda env path (see example below).
 
 * If your LD_LIBRARY_PATH variable does not contain path to built boost shared object files, add that path to it (you will probably need to set this in your .bashrc file as well for further usage):<br>
