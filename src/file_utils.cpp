@@ -55,16 +55,29 @@ void FileUtils::_compress_gz(const char* infilename, const char* outfilename)
     boost::iostreams::close(inbuf);
 }
 
-void FileUtils::_copy_and_remove_file(const char* infilename, const char* outfilename)
+void FileUtils::_move_file_smart(const char* infilename, const char* outfilename)
 {
-    std::ifstream infile(infilename);
-    std::ofstream outfile(outfilename);
-    check_fstream_ok<std::ifstream>(infile, infilename);
-    check_fstream_ok<std::ofstream>(outfile, outfilename);
+    try {
+        // cannot "rename" files between different mounts/filesystems
+        // if files are on a same mount we can hardlink one to another, otherwise get error
+        // trying to std::rename file between different mounts does not throw any error for some reason
+        // probably just can create hardlink and remove infile here but I went a bit safer
+        FS::create_hard_link(infilename, outfilename);
+        std::remove(outfilename);
+        std::rename(infilename, outfilename);
+    }
+    catch (const FS::filesystem_error& e){
+        // cannot rename file -> just copy it between filesystems
+        std::ifstream infile(infilename);
+        std::ofstream outfile(outfilename);
+        check_fstream_ok<std::ifstream>(infile, infilename);
+        check_fstream_ok<std::ofstream>(outfile, outfilename);
 
-    outfile << infile.rdbuf();
+        outfile << infile.rdbuf();
 
-    std::remove(infilename);
+        infile.close(); outfile.close();
+        std::remove(infilename);
+    }
 }
 
 void FileUtils::create_random_dir(char* buf, int len, uint n_tries)
@@ -142,9 +155,9 @@ void FileUtils::TemporaryDirectory::save_output(const string& output)
     {
         FileUtils::_compress_gz(this->m_output1.c_str(), output.c_str());
     } else {
-        // cannot "rename" files across FS volumes
+        // cannot "rename" files between volumes/filesystems
         //std::rename(this->m_output1.c_str(), output.c_str());
-        FileUtils::_copy_and_remove_file(this->m_output1.c_str(), output.c_str());
+        FileUtils::_move_file_smart(this->m_output1.c_str(), output.c_str());
     }
 }
 
@@ -157,8 +170,8 @@ void FileUtils::TemporaryDirectory::save_output(const string& output1,
     {
         FileUtils::_compress_gz(this->m_output2.c_str(), output2.c_str());
     } else {
-        // cannot "rename" files across FS volumes
+        // cannot "rename" files between volumes/filesystems
         //std::rename(this->m_output2.c_str(), output2.c_str());
-        FileUtils::_copy_and_remove_file(this->m_output2.c_str(), output2.c_str());
+        FileUtils::_move_file_smart(this->m_output2.c_str(), output2.c_str());
     }
 }

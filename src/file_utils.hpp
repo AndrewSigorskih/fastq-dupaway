@@ -16,7 +16,7 @@ namespace FileUtils
     bool _fileHasExt(const char* filename, const char* ext=".gz");
     void _decompress_gz(const char* infilename, const char* outfilename);
     void _compress_gz(const char* infilename, const char* outfilename);
-    void _copy_and_remove_file(const char* infilename, const char* outfilename);
+    void _move_file_smart(const char* infilename, const char* outfilename);
     void create_random_dir(char* buf, int len, uint n_tries = 100);
 
     class TemporaryDirectory

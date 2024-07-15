@@ -136,7 +136,7 @@ bool parse_args(int argc, char** argv, Options& opts)
     }
     catch(...)
     {
-        std::cerr << "Unknown error!" << '\n';
+        std::cerr << "Unknown error occured during arguments parsing!\n";
         return false;
     }
     return true;
@@ -214,6 +214,12 @@ int main(int argc, char** argv)
     } catch (const std::exception& exc) {
         std::cerr << "An error occured:\n";
         std::cerr << exc.what() << '\n';
+        return 1;
+    }
+    catch(...)
+    {
+        std::cerr << "Unknown error occured during program execution!\n";
+        return 1;
     }
 
     return 0;
