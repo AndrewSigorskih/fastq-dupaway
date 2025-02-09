@@ -2,8 +2,6 @@
 *.d
 
 # Compiled Object files
-*.slo
-*.lo
 *.o
 *.obj
 
@@ -16,9 +14,6 @@
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
 
 # Compiled Static libraries
 *.lai
@@ -33,6 +28,12 @@
 
 # vscode
 .vscode
+
+# CMake
+build/
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
 
 # actual binary
 fastq-dupaway
