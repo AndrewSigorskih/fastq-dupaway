@@ -70,10 +70,10 @@ void BufferedInput<T>::refresh()
         std::streamsize num_trailing = m_cursize - m_curpos;
         memmove(m_buffer, m_buffer+m_curpos, num_trailing);
         //memcpy(m_buffer, m_buffer+m_curpos, num_trailing);
-        this->m_infile->read(m_buffer+num_trailing, m_curpos);
+        m_infile->read(m_buffer+num_trailing, m_curpos);
         m_cursize = m_infile->gcount() + num_trailing;
     } else {
-        this->m_infile->read(m_buffer, m_cursize);
+        m_infile->read(m_buffer, m_cursize);
         m_cursize = m_infile->gcount();
     }
     

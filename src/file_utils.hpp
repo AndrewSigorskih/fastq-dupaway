@@ -47,7 +47,7 @@ namespace FileUtils
     public:
         InputFileGZ(const char* infilename);
         ~InputFileGZ()                             { m_infile.close();           }
-        bool eof() const                           { return m_infile.eof();      }
+        bool eof() const                           { return m_instream.eof();    }
         std::streamsize gcount() const             { return m_instream.gcount(); }
         void read(char* arr, std::streamsize n)    { m_instream.read(arr, n);    }
     private:
