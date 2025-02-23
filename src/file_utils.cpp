@@ -3,8 +3,9 @@
 
 #include <boost/format.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/copy.hpp>
+
 
 void FileUtils::_generate_random_name(char* buf, int len)
 {
@@ -96,6 +97,40 @@ void FileUtils::create_random_dir(char* buf, int len, uint n_tries)
     }
 }
 
+
+// InputFile classes  //
+
+FileUtils::InputFileTXT::InputFileTXT(const char* infilename)
+{
+    m_infile.open(infilename);
+    check_fstream_ok<std::ifstream>(m_infile, infilename);
+}
+
+FileUtils::InputFileGZ::InputFileGZ(const char* infilename)
+{
+    m_infile.open(infilename, std::ios_base::in | std::ios_base::binary);
+    check_fstream_ok<std::ifstream>(m_infile, infilename);
+
+    m_instream.push(boost::iostreams::gzip_decompressor());
+    m_instream.push(m_infile);
+}
+
+
+// InputFile factory  //
+
+FileUtils::I_InputFile* FileUtils::openInputFile(const char* infilename)
+{
+    if (FileUtils::_fileHasExt(infilename, ".gz"))
+    {
+        return new FileUtils::InputFileGZ(infilename);
+    } else {
+        return new FileUtils::InputFileTXT(infilename);
+    }
+}
+
+
+// TemporaryDirectory class  //
+
 FileUtils::TemporaryDirectory::TemporaryDirectory()
 {
     m_name = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
@@ -109,55 +144,36 @@ FileUtils::TemporaryDirectory::~TemporaryDirectory()
     free(m_name);
 }
 
+// TODO remove this method
 void FileUtils::TemporaryDirectory::clear_inputs()
-{
-    std::remove(this->m_input1.c_str());
-    this->m_input1.clear();
-    if (this->m_input2.size() > 0)
-    {
-        std::remove(this->m_input2.c_str());
-        this->m_input2.clear();
-    }
+{   
+    m_input1 = nullptr;
+    m_input2 = nullptr;
 }
 
 void FileUtils::TemporaryDirectory::set_files(const string& input)
 {
-    m_input1 = (boost::format("%1%/data_1.in") % m_name).str();
+    m_input1 = &input;
     m_output1 = (boost::format("%1%/data_1.out") % m_name).str();
-
-    if (FileUtils::_fileHasExt(input.c_str()))
-    {
-        FileUtils::_decompress_gz(input.c_str(), m_input1.c_str());
-    } else {
-        FS::create_symlink(FS::absolute(input.c_str()), m_input1.c_str());
-    }
 }
 
 void FileUtils::TemporaryDirectory::set_files(const string& input1,
                                               const string& input2)
 {
     this->set_files(input1);
-
-    m_input2 = (boost::format("%1%/data_2.in") % m_name).str();
+    m_input2 = &input2;
     m_output2 = (boost::format("%1%/data_2.out") % m_name).str();
-
-    if (FileUtils::_fileHasExt(input2.c_str()))
-    {
-        FileUtils::_decompress_gz(input2.c_str(), m_input2.c_str());
-    } else {
-        FS::create_symlink(FS::absolute(input2.c_str()), m_input2.c_str());
-    }
 }
 
 void FileUtils::TemporaryDirectory::save_output(const string& output)
 {
     if (FileUtils::_fileHasExt(output.c_str()))
     {
-        FileUtils::_compress_gz(this->m_output1.c_str(), output.c_str());
+        FileUtils::_compress_gz(m_output1.c_str(), output.c_str());
     } else {
         // cannot "rename" files between volumes/filesystems
         //std::rename(this->m_output1.c_str(), output.c_str());
-        FileUtils::_move_file_smart(this->m_output1.c_str(), output.c_str());
+        FileUtils::_move_file_smart(m_output1.c_str(), output.c_str());
     }
 }
 
@@ -168,10 +184,10 @@ void FileUtils::TemporaryDirectory::save_output(const string& output1,
 
     if (FileUtils::_fileHasExt(output2.c_str()))
     {
-        FileUtils::_compress_gz(this->m_output2.c_str(), output2.c_str());
+        FileUtils::_compress_gz(m_output2.c_str(), output2.c_str());
     } else {
         // cannot "rename" files between volumes/filesystems
         //std::rename(this->m_output2.c_str(), output2.c_str());
-        FileUtils::_move_file_smart(this->m_output2.c_str(), output2.c_str());
+        FileUtils::_move_file_smart(m_output2.c_str(), output2.c_str());
     }
 }

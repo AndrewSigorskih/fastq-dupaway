@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_set>
 #include <boost/functional/hash.hpp>
-// maybe change hash_combine to https://stackoverflow.com/a/72073933
+// TODO maybe change hash_combine to https://stackoverflow.com/a/72073933
 // or https://www.biostars.org/p/184993/#185003
 
 #include "bufferedinput.hpp"
@@ -115,9 +115,7 @@ template<class T>
 void HashDupRemover<T>::impl_filterSE(const char* infilename,
                                       const char* outfilename)
 {
-    std::ifstream input{infilename};
     std::ofstream output{outfilename};
-    check_fstream_ok<std::ifstream>(input, infilename);
     check_fstream_ok<std::ofstream>(output, outfilename);
 
     T obj;
@@ -125,7 +123,7 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> buffer(5L * constants::HUNDRED_MB);
 
-    buffer.set_file(&input);
+    buffer.set_file(infilename);
     obj = buffer.next();
     output << obj;
     records.insert(std::move(setRecord(obj.seq(), obj.seq_len()-1)));
@@ -179,9 +177,6 @@ void HashDupRemover<T>::filterPE(const string& infile1,
 
         infilename1 = tmp1;
         infilename2 = tmp2;
-
-        // remove ungzipped inputs (or input symlinks) here
-        m_tempdir->clear_inputs();
     }
 
     // deduplicate 2 files
@@ -198,12 +193,8 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
                                       const char* outfile1,
                                       const char* outfile2)
 {
-    std::ifstream input1{infile1};
-    std::ifstream input2{infile2};
     std::ofstream output1{outfile1};
     std::ofstream output2{outfile2};
-    check_fstream_ok<std::ifstream>(input1, infile1);
-    check_fstream_ok<std::ifstream>(input2, infile2);
     check_fstream_ok<std::ofstream>(output1, outfile1);
     check_fstream_ok<std::ofstream>(output2, outfile2);
 
@@ -211,8 +202,8 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
     paired_hashed_set records;
     records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> left_buffer(5L * constants::HUNDRED_MB), right_buffer(5L * constants::HUNDRED_MB);
-    left_buffer.set_file(&input1);
-    right_buffer.set_file(&input2);
+    left_buffer.set_file(infile1);
+    right_buffer.set_file(infile2);
     left = left_buffer.next();
     right = right_buffer.next();
 

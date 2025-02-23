@@ -56,8 +56,6 @@ void SeqDupRemover<T>::filterSE(const string& infile,
         ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
         sorter.sort(m_tempdir->input1().c_str(), sorted.c_str());
     }
-    // remove ungzipped input (or input symlink) here
-    m_tempdir->clear_inputs();
 
     // deduplicate file
     this->impl_filterSE(sorted.c_str(), m_tempdir->output1().c_str());
@@ -70,14 +68,12 @@ template<class T>
 void SeqDupRemover<T>::impl_filterSE(const char* infile,
                                      const char* outfile)
 {
-    std::ifstream input{infile};
     std::ofstream output{outfile};
-    check_fstream_ok<std::ifstream>(input, infile);
     check_fstream_ok<std::ofstream>(output, outfile);
 
     T obj;
     BufferedInput<T> buffer(m_memlimit);
-    buffer.set_file(&input);
+    buffer.set_file(infile);
     obj = buffer.next();
     this->m_comparator->set_seq(obj.seq(), obj.seq_len());
     output << obj;
@@ -108,9 +104,8 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
                                 const string& outfile1,
                                 const string& outfile2)
 {
-    // gunzip files if needed
     m_tempdir->set_files(infile1, infile2);
-    string infilename1 = infile1, infilename2 = infile2;
+    // string infilename1 = infile1, infilename2 = infile2;
     
     string sorted1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
     string sorted2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
@@ -121,8 +116,6 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
                     sorted1.c_str(),
                     sorted2.c_str());
     }
-    // remove ungzipped inputs (or input symlinks) here
-    m_tempdir->clear_inputs();
 
     this->impl_filterPE(sorted1.c_str(),
                         sorted2.c_str(),
@@ -138,19 +131,15 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                                      const char* outfile1,
                                      const char* outfile2)
 {
-    std::ifstream input1{infile1};
-    std::ifstream input2{infile2};
     std::ofstream output1{outfile1};
     std::ofstream output2{outfile2};
-    check_fstream_ok<std::ifstream>(input1, infile1);
-    check_fstream_ok<std::ifstream>(input2, infile2);
     check_fstream_ok<std::ofstream>(output1, outfile1);
     check_fstream_ok<std::ofstream>(output2, outfile2);
 
     T left, right;
     BufferedInput<T> left_buffer(m_memlimit/2), right_buffer(m_memlimit/2);
-    left_buffer.set_file(&input1);
-    right_buffer.set_file(&input2);
+    left_buffer.set_file(infile1);
+    right_buffer.set_file(infile2);
     left = left_buffer.next();
     right = right_buffer.next();
     this->m_comparator->set_seq(left.seq(), left.seq_len(),

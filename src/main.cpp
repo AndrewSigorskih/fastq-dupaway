@@ -49,7 +49,7 @@ bool parse_args(int argc, char** argv, Options& opts)
         ("output-2,p", po::value<string>(&opts.output_2), "Second output file (optional, required for paired-end mode)")
         ("mem-limit,m", po::value<ssize_t>(), "Memory limit in megabytes (default 2048 = 2Gb).\n"
                                               "Supported value range is [500 <-> 10240 (10 Gb)]\n"
-                                              "Actual memory usage will slightly exceed this value.\n"
+                                              "Actual memory usage may slightly exceed this value.\n"
                                               "NB: The hash-based deduplication mode does not support strict memory limitation.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta.")
         ("compare-seq", po::value<string>(), "Sequence comparison mode for deduplication step.\n"
