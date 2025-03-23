@@ -119,7 +119,9 @@ fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
         ([--compare-seq MODE] | [--hashed [--unordered]])
 ```
 
-The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both second input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed below:
+The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both second input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed in the table below.
+
+<b>For more in-depth options description and explanation of program algorithm please refer to [this](doc/algorithm.md) page.</b>
 
 Option|Value|Description
 ---|---|---
@@ -130,10 +132,10 @@ Option|Value|Description
 -p/--output-2|string|Second output file (required for paired-end mode).
 -m/--mem-limit|integer in range [500, 10240]|Memory limit in megabytes (default 2048 = 2Gb).<br>The hashtable-based deduplication mode does not support strict memory limitation.
 --format|either "fastq" (default) or "fasta"|Input file format.
---compare-seq|string (see description)|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence. Outputs of this mode will be similar to those of "fastuniq" program.<br>- "hamming": consider a pair of sequnces as duplicates if their Hamming distance is less or equal than threshold. Sequences of different lengths will not be compared.
+--compare-seq|string (see description)|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence. Outputs of this mode will be similar to those of "fastuniq" program.<br>- "tail-hamming": An experimental option that considers a pair of sequences as duplicates if those differ by no more than a set number of mismatches at their respective ends. Sequences of different lengths will not be compared.
 --distance|non-negative integer|A threshold value for Hamming distance calculation. Default value is 2.
---hashed|-|Use hash-based approach instead of sequence-based. In this mode the program will run significantly faster, however no memory limit can be set and only complete duplicates will be filtered out.
---unordered|-|This option is supported only by hash mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the reads order determined by read IDs does not match). If this option is enabled, both input files will be sorted by read IDs before deduplication.
+--fast|-|Use hash-based approach instead of sequence-based. In this mode the program will run significantly faster, however no memory limit can be set and only complete duplicates will be filtered out.
+--unordered|-|This option is supported only by "fast" mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the reads order determined by read IDs does not match). If this option is enabled, both input files will be sorted by read IDs before deduplication.
 
 
 ## Additional information
