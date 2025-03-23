@@ -109,7 +109,7 @@ docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
         -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
 ```
 
-**NB**: fastq-dupaway requires **a lot of disk space** (~2.5-3 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. In order to configure allowed disk space when running container, use [docker run storage options](https://docs.docker.com/reference/cli/docker/container/run/#storage-opt).
+**NB**: fastq-dupaway requires **a lot of disk space** (~2 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. In order to configure allowed disk space when running container, use [docker run storage options](https://docs.docker.com/reference/cli/docker/container/run/#storage-opt).
 
 ### Program options
 
@@ -120,8 +120,6 @@ fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
 ```
 
 The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both second input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed in the table below.
-
-<b>For more in-depth options description and explanation of program algorithm please refer to [this](doc/algorithm.md) page.</b>
 
 Option|Value|Description
 ---|---|---
@@ -138,6 +136,15 @@ Option|Value|Description
 --unordered|-|This option is supported only by "fast" mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the reads order determined by read IDs does not match). If this option is enabled, both input files will be sorted by read IDs before deduplication.
 
 
+## Detailed explanation of program options and algorithm
+
+Please refer to the [extended manual](doc/algorithm.md) page.
+
+
 ## Additional information
 
-Input filenames ending with ".gz" will be treated as binary files compressed by gzip program. If output filenames provided also end with ".gz", output files will be compressed as well.
+* Input filenames ending with ".gz" will be treated as binary files compressed by gzip program. If output filenames provided also end with ".gz", output files will be compressed as well.
+
+* The original idea behind this program was to create a tool that would bring the same results as fastuniq program, but would be feasible to run on non-HPC systems (small servers, personal machines) even when dealing with large datasets (hundreds of gigabytes) with reasonable time penalty.
+
+* If you are experienceing unexpected results, first of all check if the last line in your input is terminated with a newline character ('\n'). Absence of newline terminator at the end of input file will affect program behaviour.
