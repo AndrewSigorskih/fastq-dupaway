@@ -43,7 +43,6 @@ private:
     const char* m_workdir;
     std::priority_queue<QueueNode<T>, std::vector<QueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
-    std::vector<std::ifstream> m_inputs;
 };
 
 template <class T>
@@ -88,22 +87,17 @@ void ExternalSorter<T>::reserve(ssize_t count)
     this->m_buffers.reserve(count);
     for (ssize_t i = 0; i < count; ++i)
         this->m_buffers.emplace_back(mem);
-    // input files
-    this->m_inputs = std::vector<std::ifstream>(count);
 }
 
 template <class T>
 void ExternalSorter<T>::sort_buckets(const char* infilename)
-{   // maybe be moved outside for gz files support
-    std::ifstream input{infilename};
+{
     std::ofstream output;
-    check_fstream_ok<std::ifstream>(input, infilename);
-
     m_filesNum = 0;
     std::vector<T> arr;
     // "view" objects take up to 1/3 of corresponding memory chunk
     BufferedInput<T> buffer((m_memlimit / 3) * 2);
-    buffer.set_file(&input);
+    buffer.set_file(infilename);
     
     while(!buffer.eof())
     {
@@ -138,9 +132,7 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
     for (ssize_t i = 0; i < filesCount; ++i) {
         boost::format fmt = boost::format("%1%/%2%/%3%.tmp") % m_workdir % m_tempdir % (start+i);
         filenames.push_back(fmt.str());
-        m_inputs[i].open(filenames[i]);
-        check_fstream_ok<std::ifstream>(m_inputs[i], filenames[i].c_str());
-        m_buffers[i].set_file(&(m_inputs[i]));
+        m_buffers[i].set_file(filenames[i].c_str());
     }
     // initially fill up queue
     for (ssize_t i = 0; i < filesCount; ++i) 
@@ -170,7 +162,6 @@ void ExternalSorter<T>::mergeHelper(ssize_t start,
     // cleanup
     for (ssize_t i = 0; i < filesCount; ++i)
     {
-        m_inputs[i].close();
         m_buffers[i].unset_file();
     }
     output.close();

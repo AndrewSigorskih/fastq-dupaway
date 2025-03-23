@@ -49,22 +49,23 @@ bool parse_args(int argc, char** argv, Options& opts)
         ("output-2,p", po::value<string>(&opts.output_2), "Second output file (optional, required for paired-end mode)")
         ("mem-limit,m", po::value<ssize_t>(), "Memory limit in megabytes (default 2048 = 2Gb).\n"
                                               "Supported value range is [500 <-> 10240 (10 Gb)]\n"
-                                              "Actual memory usage will slightly exceed this value.\n"
-                                              "NB: The hash-based deduplication mode does not support strict memory limitation.")
+                                              "Actual memory usage may slightly exceed this value.\n"
+                                              "NB: The 'fast' deduplication mode does not support strict memory limitation.")
         ("format", po::value<string>(), "input file format: fastq (default) or fasta.")
         ("compare-seq", po::value<string>(), "Sequence comparison mode for deduplication step.\n"
                                              "Supported options:\n"
                                              "\ttight (default): compare sequences directly, sequences of different lengths are considered different.\n"
                                              "\tloose: compare sequences directly, sequences of different lengths are considered duplicates if shorter"
                                              " sequence exactly matches with prefix of longer sequence.\n"
-                                             "\thamming: consider a pair of sequnces as duplicates if their Hamming distance is less or equal than"
-                                             " threshold (default 2). Sequences of different lengths will not be compared.")
-        ("distance", po::value<uint>(&opts.hammdist), "A threshold value for Hamming distance calculation. Should be a non-negative integer."
+                                             "\ttail-hamming: An experimental option that considers a pair of sequences as duplicates"
+                                             " if those differ by no more than a set number of mismatches at their respective ends"
+                                             " (default 2). Sequences of different lengths will not be compared.")
+        ("distance", po::value<uint>(&opts.hammdist), "A threshold value for 'tail-hamming' distance calculation. Should be a non-negative integer."
                                                       " Default value is 2.")
-        ("hashed", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
-                                               "In this mode the program will run significantly faster, however no memory limit can be set"
-                                               " and only complete duplicates will be filtered out.")
-        ("unordered", po::bool_switch(&opts.unordered), "This option is supported only by hash mode for paired inputs.\n"
+        ("fast", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
+                                             "In this mode the program will run significantly faster, however no memory limit can be set"
+                                             " and only complete duplicates will be filtered out.")
+        ("unordered", po::bool_switch(&opts.unordered), "This option is supported only by 'fast' mode for paired inputs.\n"
                                                         "Enable this flag if reads in your paired input files are not synchronized"
                                                         " (i.e. the reads order determined by read IDs does not match).\n"
                                                         "If this option is enabled, both input files will be sorted by read IDs before deduplication.")
@@ -107,7 +108,7 @@ bool parse_args(int argc, char** argv, Options& opts)
                 ;
             else if (value == "loose")
                 opts.ctype = ComparatorType::CT_LOOSE;
-            else if (value == "hamming")
+            else if (value == "tail-hamming")
                 opts.ctype = ComparatorType::CT_HAMMING;
             else
                 throw std::runtime_error("Unsupported compare-seq type provided!");
