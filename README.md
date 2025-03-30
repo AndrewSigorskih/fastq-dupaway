@@ -116,7 +116,7 @@ docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
 ```
 fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
         [-m MEMORY-LIMIT] [--format fasta|fastq] \
-        ([--compare-seq MODE] | [--hashed [--unordered]])
+        ([--compare-seq MODE] | [--fast [--unordered]])
 ```
 
 The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both second input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed in the table below.
