@@ -45,7 +45,7 @@ During second step, the program reads sorted input and removes duplicated record
 In case of paired inputs, the logic for determining duplicates is exactly as described above, with a small addition that both "left" and "right" reads from pair B must be determined as duplicates of respective reads from pair A for pair B to be removed. The process is depicted on the following Fig.4: out of 4 pairs of sequences, the reads of the second pair completely duplicate the ones from the first pair, in the third pair only "right" read differs from right read from first pair, and the fourth pair differs from pair one in both left and right reads. After deduplication in "tight" mode only second pair is considered duplicate and removed.
 
 <img src=imgs/4.paired_tight.png>
-<br>Fig. 3. "tight" deduplication of paired-end input.<br><br>
+<br>Fig. 4. "tight" deduplication of paired-end input.<br><br>
 
 ## Fast mode
 
