@@ -23,33 +23,19 @@ docker run -it --rm fastq-dupaway --help
 
 The only dependency is Boost. This program was developed and tested using Boost libraries version 1.81.0.
 
-#### Setting up shell variables
-
-Before installing Boost, <ins>set up shell variables</ins>:
-
-* Create shell variable <i>BOOST_ROOT</i> pointing the desired root directory of your boost installation.<br>
-Boost installer will place header-only libraries and built shared object files in include/ and lib/ folders under this root directory, respectively.<br>
-If you are using conda, assign this variable to your conda env path (see example below in Boost installation section).
-
-* If your LD_LIBRARY_PATH variable does not contain path to built boost shared object files, add that path to it (you will probably need to set this in your .bashrc file as well for further usage):<br>
-
-```bash
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/your/custom/path/
-```
-
 #### How to install BOOST
 
 <details>
 <summary>Click to expand</summary>
 
-In order to install Boost from source, you will need admin rights.<br>
+In order to install Boost <u>from source</u>, you will need sudo access.<br>
 Download source code from official site, configure bootstrap.sh and install:
 
 ```bash
 export BOOST_ROOT=/usr/local
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BOOST_ROOT}/lib
 
-wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.tar.gz
+wget https://archives.boost.io/release/1.81.0/source/boost_1_81_0.tar.gz
 tar xvf boost_1_81_0.tar.gz
 cd boost_1_81_0
 # The following commands will save boost headers under /usr/local/include/boost
@@ -58,7 +44,7 @@ cd boost_1_81_0
 sudo ./b2 install --with-iostreams --with-program_options --build-dir=/tmp/build-boost
 ```
 
-Alternativaly, you can easily install Boost via conda.<br>
+Alternativaly, you can easily install Boost via <u>conda</u>.<br>
 You will also need g++ and make installed in your conda environment as well.
 
 ```bash
@@ -69,6 +55,20 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BOOST_ROOT}/lib
 ```
 
 </details>
+
+#### Setting up shell variables
+
+After installing Boost, <ins>set up shell variables</ins>:
+
+* Create shell variable <i>BOOST_ROOT</i> pointing the desired root directory of your boost installation.<br>
+Boost installer will place header-only libraries and built shared object files in include/ and lib/ folders under this root directory, respectively.<br>
+If you are using conda, assign this variable to your conda env path (see example above in the Boost installation section).
+
+* If your LD_LIBRARY_PATH variable does not contain path to built boost shared object files, add that path to it (you will probably need to set this in your .bashrc file as well for further usage):<br>
+
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/your/custom/path/
+```
 
 ### Clone this repo and build executable
 
