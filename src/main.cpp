@@ -131,7 +131,7 @@ bool parse_args(int argc, char** argv, Options& opts)
     }
     catch(const std::exception& e)
     {
-        std::cerr << "An error occured:\n";
+        std::cerr << "An error occured during arguments parsing:\n";
         std::cerr << e.what() << '\n';
         return false;
     }
@@ -213,13 +213,13 @@ int main(int argc, char** argv)
             delete comp;
 
     } catch (const std::exception& exc) {
-        std::cerr << "An error occured:\n";
+        std::cerr << "An error occured during fastq-dupaway execution:\n";
         std::cerr << exc.what() << '\n';
         return 1;
     }
     catch(...)
     {
-        std::cerr << "Unknown error occured during program execution!\n";
+        std::cerr << "Unknown error occured during fastq-dupaway execution!\n";
         return 1;
     }
 

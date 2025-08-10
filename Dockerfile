@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.16.0
+
 FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.authors="Andrey Sigorskikh"
@@ -20,7 +22,9 @@ ENV LD_LIBRARY_PATH="/usr/local/lib"
 WORKDIR /tmp
 
 # download boost
-ADD --checksum=sha256:${BOOST_CHECKSUM} https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_MOD}.tar.bz2 /tmp/boost_${BOOST_VER_MOD}.tar.bz2
+ADD --checksum=sha256:${BOOST_CHECKSUM} \
+    https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_MOD}.tar.bz2 \
+    /tmp/boost_${BOOST_VER_MOD}.tar.bz2
 
 # install boost
 RUN tar -xf boost_${BOOST_VER_MOD}.tar.bz2 && \
@@ -38,5 +42,7 @@ RUN make && \
     mv fastq-dupaway /usr/local/bin && \
     cd .. && rm -rf fastq-dupaway
 
-WORKDIR /run
-ENTRYPOINT [ "fastq-dupaway" ]
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
