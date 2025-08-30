@@ -14,4 +14,4 @@ def test_help(exe_path: Path):
 
     assert result.returncode == 1
 
-    assert result.stderr.startswith("Supported options:"), "Help message is not printed to stderr!"
+    assert result.stderr.startswith("fastq-dupaway V"), "Help message is not printed to stderr!"

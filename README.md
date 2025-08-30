@@ -133,7 +133,7 @@ Option|Value|Description
 --compare-seq|string (see description)|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence. Outputs of this mode will be similar to those of "fastuniq" program.<br>- "tail-hamming": An experimental option that considers a pair of sequences as duplicates if those differ by no more than a set number of mismatches at their respective ends. Sequences of different lengths will not be compared.
 --distance|non-negative integer|A threshold value for Hamming distance calculation. Default value is 2.
 --fast|-|Use hash-based approach instead of sequence-based. In this mode the program will run significantly faster, however no memory limit can be set and only complete duplicates will be filtered out.
---unordered|-|This option is supported only by "fast" mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the reads order determined by read IDs does not match). If this option is enabled, both input files will be sorted by read IDs before deduplication.
+--unordered|-|This option is supported only by "fast" mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the order in which reads appear (determined by read IDs) and/or the number of reads differs between two input files). If this option is enabled, both input files will be sorted by read IDs before deduplication, and reads with unmatched IDs will be skipped.
 
 
 ## Detailed explanation of program options and algorithm
@@ -148,3 +148,19 @@ Please refer to the [extended manual](doc/algorithm.md) page.
 * The original idea behind this program was to create a tool that would bring the same results as fastuniq program, but would be feasible to run on non-HPC systems (small servers, personal machines) even when dealing with large datasets (hundreds of gigabytes) with reasonable time penalty.
 
 * If you are experienceing unexpected results, first of all check if the last line in your input is terminated with a newline character ('\n'). Absence of newline terminator at the end of input file will affect program behaviour.
+
+## Running tests
+
+Correctness of the program's algorithm is tested by running a set of tests that can be found in the `test/` folder. In order to run tests, first create a Python virtual environment using venv or conda (recommended Python version is 3.12) and install required packages:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-test.txt
+```
+
+Then run tests using pytest:
+
+```bash
+pytest -v test/
+```

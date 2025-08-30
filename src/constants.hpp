@@ -7,4 +7,5 @@ namespace constants
     const ssize_t HUNDRED_MB = 100L * ONE_MB;
     const ssize_t TWO_GB = 2L * 1024L * ONE_MB;
     const int DIRNAME_LEN = 10;
+    const std::string VERSION {"fastq-dupaway V1.4.0"};
 }

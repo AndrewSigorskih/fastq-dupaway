@@ -14,7 +14,7 @@ namespace po = boost::program_options;
 
 enum Modes
 {
-    BASE = 0,   // Base case: single-end Fastq file, seq-based approach
+    BASE = 0,   // Default: single-end Fastq file, seq-based "tight" approach
     FASTA = 1,  // change format to Fasta
     PAIRED = 2, // paired-end input
     HASH = 4    // use hash-based approach instead of seq comparison
@@ -67,7 +67,8 @@ bool parse_args(int argc, char** argv, Options& opts)
                                              " and only complete duplicates will be filtered out.")
         ("unordered", po::bool_switch(&opts.unordered), "This option is supported only by 'fast' mode for paired inputs.\n"
                                                         "Enable this flag if reads in your paired input files are not synchronized"
-                                                        " (i.e. the reads order determined by read IDs does not match).\n"
+                                                        " (i.e. the order in which reads appear (determined by read IDs) and/or the"
+                                                        " number of reads differs between two input files).\n"
                                                         "If this option is enabled, both input files will be sorted by read IDs before deduplication.")
         ;
         // Parse command line arguments
@@ -75,6 +76,7 @@ bool parse_args(int argc, char** argv, Options& opts)
         po::store(po::parse_command_line(argc, argv, desc), vm);
         if (vm.count("help"))
         {
+            std::cerr << constants::VERSION << "\n";
             std::cerr << desc << "\n";
             return false;
         }
@@ -114,20 +116,36 @@ bool parse_args(int argc, char** argv, Options& opts)
                 throw std::runtime_error("Unsupported compare-seq type provided!");
         }
 
-        // seq-based or hash-based
-        if (hash_opt)
-        {
-            opts.mode = (opts.mode | Modes::HASH);
-            opts.ctype = ComparatorType::CT_NONE;
-        }
-
         // memory limit safe check
         if (vm.count("mem-limit"))
         {
             ssize_t value = vm["mem-limit"].as<ssize_t>();
             if ((value >= 500L) && (value <= 10240L))
                 opts.memLimit = value * constants::ONE_MB;
+            else
+                throw std::runtime_error("Value of unsupported range provided for --mem-limit option!");
         }
+
+        // seq-based or hash-based
+        if (hash_opt)
+        {
+            opts.mode = (opts.mode | Modes::HASH);
+            opts.ctype = ComparatorType::CT_NONE;
+
+            // check if user provided arguments for seq-based modes
+            if (vm.count("compare-seq") || vm.count("distance"))
+                throw std::runtime_error("--fast mode was enabled, but argument(s) for sequence-based mode were provided!");
+        }
+
+        // check is unordered option was used incorrectly
+        if (opts.unordered)
+        {
+            if (!hash_opt)
+                throw std::runtime_error("--unordered argument can only be used with --fast mode!");
+            if (!vm.count("input-2"))
+                throw std::runtime_error("--unordered argument can only be used with paired inputs!");
+        }
+
     }
     catch(const std::exception& e)
     {
