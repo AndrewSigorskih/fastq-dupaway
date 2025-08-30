@@ -300,4 +300,22 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
         if (right_buffer.block_end())
             right_buffer.refresh();
     }
+
+    // check 2 last records
+    int cmp = left.cmp(right);
+    if (cmp < 0)
+    {
+        left = left_buffer.next();
+    } else if (cmp > 0) {
+        right = right_buffer.next();
+    } else {
+        setRecordPair record(left.seq(), left.seq_len()-1,
+                            right.seq(), right.seq_len()-1);
+        auto it = records.find(record);
+        if (it == records.end())
+        {
+            output1 << left;
+            output2 << right;
+        }
+    }
 }

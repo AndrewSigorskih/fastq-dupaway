@@ -1,8 +1,6 @@
 import subprocess
 import filecmp
 
-import pytest
-
 
 def test_single_fast(tmp_path, exe_path, tests_path):
     input_file = tests_path / "inputs" / "single_fast.fa"
