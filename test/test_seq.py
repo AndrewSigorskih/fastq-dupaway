@@ -3,6 +3,7 @@ import filecmp
 
 import pytest
 
+
 @pytest.mark.parametrize(
     "filename, cli_args",
     [
