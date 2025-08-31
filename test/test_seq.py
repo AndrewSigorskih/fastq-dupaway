@@ -13,6 +13,9 @@ import pytest
     ],
 )
 def test_single_fasta(tmp_path, exe_path, tests_path, filename, cli_args):
+    if not exe_path.exists():
+        pytest.fail("fastq-dupaway binary not found in current directory!")
+
     input_file = tests_path / "inputs" / filename
     expected_output = tests_path / "expected" / filename
     output_file = tmp_path / filename
@@ -42,6 +45,9 @@ def test_single_fasta(tmp_path, exe_path, tests_path, filename, cli_args):
     ],
 )
 def test_paired_fasta(tmp_path, exe_path, tests_path, filename, cli_args):
+    if not exe_path.exists():
+        pytest.fail("fastq-dupaway binary not found in current directory!")
+
     input_file_1 = tests_path / "inputs" / f"{filename}_r1.fa"
     input_file_2 = tests_path / "inputs" / f"{filename}_r2.fa"
 
@@ -70,6 +76,9 @@ def test_paired_fasta(tmp_path, exe_path, tests_path, filename, cli_args):
 
 
 def test_nonmatching_outputs(tmp_path, exe_path, tests_path):
+    if not exe_path.exists():
+        pytest.fail("fastq-dupaway binary not found in current directory!")
+        
     input_file = tests_path / "inputs" / "single_tight.fa"
     expected_output = tests_path / "expected" / "single_hamming.fa"
     output_file = tmp_path / "single_tight.fa"

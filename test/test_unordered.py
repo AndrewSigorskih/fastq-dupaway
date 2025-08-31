@@ -18,6 +18,9 @@ ARGS = ("--format", "fasta", "--fast", "--unordered")
     ],
 )
 def test_unordered(tmp_path, exe_path, tests_path, filename):
+    if not exe_path.exists():
+        pytest.fail("fastq-dupaway binary not found in current directory!")
+    
     input_file_1 = tests_path / "inputs" / f"unordered_{filename}_r1.fa"
     input_file_2 = tests_path / "inputs" / f"unordered_{filename}_r2.fa"
 

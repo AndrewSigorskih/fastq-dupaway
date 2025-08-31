@@ -1,8 +1,13 @@
 import subprocess
 import filecmp
 
+import pytest
+
 
 def test_single_fast(tmp_path, exe_path, tests_path):
+    if not exe_path.exists():
+        pytest.fail("fastq-dupaway binary not found in current directory!")
+    
     input_file = tests_path / "inputs" / "single_fast.fa"
     expected_output = tests_path / "expected" / "single_fast.fa"
     output_file = tmp_path / "single_fast.fa"
@@ -22,6 +27,9 @@ def test_single_fast(tmp_path, exe_path, tests_path):
 
 
 def test_paired_fast(tmp_path, exe_path, tests_path):
+    if not exe_path.exists():
+        pytest.fail("fastq-dupaway binary not found in current directory!")
+    
     input_file_1 = tests_path / "inputs" / f"paired_fast_r1.fa"
     input_file_2 = tests_path / "inputs" / f"paired_fast_r2.fa"
 
