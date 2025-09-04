@@ -9,9 +9,19 @@ fastq-dupaway offers two main working modes depending on user's needs:
 
 ## Installation
 
-### Building a Docker image (recommended)
+### Using Docker image (recommended)
 
-Clone this repository and build image:
+#### Pull image from Docker Hub
+
+```bash
+docker pull asigorskikh/fastq-dupaway:latest
+docker tag asigorskikh/fastq-dupaway:latest fastq-dupaway
+# check that everything went as expected (should print help message and exit):
+docker run -it --rm fastq-dupaway --help
+```
+
+
+#### Or clone this repository and build the image
 
 ```bash
 docker build -t fastq-dupaway .
@@ -21,7 +31,9 @@ docker run -it --rm fastq-dupaway --help
 
 ### Manual installation (using conda or system-level boost installation)
 
-The only dependency is Boost. This program was developed and tested using Boost libraries version 1.81.0.
+The only dependency is [Boost](https://www.boost.org/). This program was developed and tested using Boost libraries version 1.81.0.
+<br>
+You will also need build tools: g++ compiler version 9 or higher and make.
 
 #### How to install BOOST
 
@@ -50,6 +62,7 @@ You will also need g++ and make installed in your conda environment as well.
 ```bash
 conda create -n gxx-boost -c conda-forge gxx make boost=1.82.0
 conda activate gxx-boost
+# adjust conda path if you are using conda installation different from Miniconda 3
 export BOOST_ROOT=~/miniconda3/envs/gxx-boost
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BOOST_ROOT}/lib
 ```
@@ -80,7 +93,9 @@ make clean
 ./fastq-dupaway --help
 ```
 
-### Build using CMake
+### (Optional) Build using CMake
+
+CMake can help you detect correct Boost instllation in case you have multiple on your system.
 
 ```bash
 cd fastq-dupaway
@@ -98,7 +113,12 @@ make
 
 ## Usage
 
+**NB**: fastq-dupaway requires **a lot of disk space** (~2 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. The "fast" mode is not disk-intensive and can be used when strict RAM limtation is not in proority.
+
 ### Running Docker image
+
+fastq-dupaway Docker image **requires you to mount a volume named /data** when running. The mounted directory should contain your input files.
+The program will run in this directory and create temporary folder during processing. This is done deliberately to prevent creating potentially large temporary files in docker's standard tmp space.
 
 Mount volume with your data directories while running docker image:
 
@@ -108,8 +128,6 @@ Mount volume with your data directories while running docker image:
 docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
         -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
 ```
-
-**NB**: fastq-dupaway requires **a lot of disk space** (~2 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. In order to configure allowed disk space when running container, use [docker run storage options](https://docs.docker.com/reference/cli/docker/container/run/#storage-opt).
 
 ### Program options
 
