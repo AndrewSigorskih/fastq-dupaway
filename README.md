@@ -113,7 +113,7 @@ make
 
 ## Usage
 
-**NB**: fastq-dupaway requires **a lot of disk space** (~2 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. The "fast" mode is not disk-intensive and can be used when strict RAM limtation is not in proority.
+**NB**: fastq-dupaway requires **a lot of disk space** (~2 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. The "fast" mode is not disk-intensive and can be used when strict RAM limitation is not in priority.
 
 ### Running Docker image
 
