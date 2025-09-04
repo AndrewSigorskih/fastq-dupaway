@@ -84,6 +84,8 @@ private:
     void impl_filterSE(const char*, const char*);
     void impl_filterPE(const char*, const char*,
                        const char*, const char*);
+    void impl_filterPE_unordered(const char*, const char*,
+                                 const char*, const char*);
 private:
     ssize_t m_memlimit;
     TemporaryDirectory* m_tempdir;
@@ -150,7 +152,7 @@ void HashDupRemover<T>::filterPE(const string& infile1,
                                  const string& infile2,
                                  const string& outfile1,
                                  const string& outfile2,
-                                 bool to_sort)
+                                 bool unordered_flag)
 {
     // gunzip inputs if needed
     m_tempdir->set_files(infile1, infile2);
@@ -158,7 +160,7 @@ void HashDupRemover<T>::filterPE(const string& infile1,
     string infilename2 = m_tempdir->input2();
 
     // sort both files by ID if needed
-    if (to_sort)
+    if (unordered_flag)
     {
         string tmp1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
         string tmp2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
@@ -180,9 +182,19 @@ void HashDupRemover<T>::filterPE(const string& infile1,
     }
 
     // deduplicate 2 files
-    this->impl_filterPE(infilename1.c_str(), infilename2.c_str(),
-                        m_tempdir->output1().c_str(),
-                        m_tempdir->output2().c_str());
+    if (unordered_flag)
+    {
+        this->impl_filterPE_unordered(infilename1.c_str(),
+                                      infilename2.c_str(),
+                                      m_tempdir->output1().c_str(),
+                                      m_tempdir->output2().c_str());
+    } else {
+        this->impl_filterPE(infilename1.c_str(),
+                            infilename2.c_str(),
+                            m_tempdir->output1().c_str(),
+                            m_tempdir->output2().c_str());
+    }
+    
     // save outputs
     m_tempdir->save_output(outfile1, outfile2);
 }
@@ -235,5 +247,75 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
         }
         left_buffer.refresh();
         right_buffer.refresh();
+    }
+}
+
+template<class T>
+void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
+                                                const char* infile2,
+                                                const char* outfile1,
+                                                const char* outfile2)
+{
+    std::ofstream output1{outfile1};
+    std::ofstream output2{outfile2};
+    check_fstream_ok<std::ofstream>(output1, outfile1);
+    check_fstream_ok<std::ofstream>(output2, outfile2);
+
+    T left, right;
+    paired_hashed_set records;
+    records.reserve(ONE_MIL);  // TODO optimize this value?
+    BufferedInput<T> left_buffer(5L * constants::HUNDRED_MB), right_buffer(5L * constants::HUNDRED_MB);
+    left_buffer.set_file(infile1);
+    right_buffer.set_file(infile2);
+    left = left_buffer.next();
+    right = right_buffer.next();
+
+    while (!left_buffer.eof() && !right_buffer.eof())
+    {
+        while (!left_buffer.block_end() && !right_buffer.block_end())
+        {
+            int cmp = left.cmp(right);
+            if (cmp < 0)
+            {
+                left = left_buffer.next();
+            } else if (cmp > 0) {
+                right = right_buffer.next();
+            } else {
+                // tags are equal, we can proceed
+                setRecordPair record(left.seq(), left.seq_len()-1,
+                                 right.seq(), right.seq_len()-1);
+                auto it = records.find(record);
+                if (it == records.end())
+                {
+                    output1 << left;
+                    output2 << right;
+                    records.insert(std::move(record));
+                }
+                left = left_buffer.next();
+                right = right_buffer.next();
+            }
+        }
+        if (left_buffer.block_end())
+            left_buffer.refresh();
+        if (right_buffer.block_end())
+            right_buffer.refresh();
+    }
+
+    // check 2 last records
+    int cmp = left.cmp(right);
+    if (cmp < 0)
+    {
+        left = left_buffer.next();
+    } else if (cmp > 0) {
+        right = right_buffer.next();
+    } else {
+        setRecordPair record(left.seq(), left.seq_len()-1,
+                            right.seq(), right.seq_len()-1);
+        auto it = records.find(record);
+        if (it == records.end())
+        {
+            output1 << left;
+            output2 << right;
+        }
     }
 }

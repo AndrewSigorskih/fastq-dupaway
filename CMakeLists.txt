@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 project(
     fastq-dupaway
-    VERSION 1.3
+    VERSION 1.4
     LANGUAGES CXX
 )
 

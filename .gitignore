@@ -28,6 +28,10 @@
 # vscode
 .vscode
 
+# Python
+venv/*
+test/__pycache__/*
+
 # CMake
 build/
 CMakeCache.txt
