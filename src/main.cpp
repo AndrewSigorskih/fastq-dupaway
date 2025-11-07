@@ -84,11 +84,20 @@ bool parse_args(int argc, char** argv, Options& opts)
 
         // check whether PE mode args passed correctly
         if (vm.count("input-2") ^ vm.count("output-2"))
-        { throw std::runtime_error("Both input-2 and output-2 arguments are required for paired-end mode!"); }
+            throw std::runtime_error("Both input-2 and output-2 arguments are required for paired-end mode!");
 
         // paired or single mode
         if (vm.count("input-2"))
-        { opts.mode  = (opts.mode | Modes::PAIRED); }
+            opts.mode = (opts.mode | Modes::PAIRED);
+
+        // check if both files in pair reference the same file
+        if (vm.count("input-2"))
+        {
+            if (opts.input_1 == opts.input_2)
+                throw std::runtime_error("Paired input files should not be the same file!");
+            if (opts.output_1 == opts.output_2)
+                throw std::runtime_error("Paired output files should not be the same file!");
+        }
 
         // file format check
         if (vm.count("format"))
