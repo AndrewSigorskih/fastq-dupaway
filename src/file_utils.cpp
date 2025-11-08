@@ -4,125 +4,147 @@
 #include <boost/format.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/copy.hpp>
 
-
-void FileUtils::_generate_random_name(char* buf, int len)
+namespace FileUtils
 {
-    static const char charset[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-    static const size_t max_index = (sizeof(charset) - 2); // skipping \0 at the end
-    std::default_random_engine rng(std::random_device{}());
-    std::uniform_int_distribution<> dist(0, max_index);
-    auto randchar = [&]() -> char { return charset[ dist(rng) ]; };
-    std::generate_n( buf, len, randchar );
-}
 
-void FileUtils::create_random_dir(char* buf, int len, uint n_tries)
-{
-    while (true)
+    void _generate_random_name(char* buf, int len)
     {
-        FileUtils::_generate_random_name(buf, len);
-        if (FS::create_directory(buf)) 
-            break;
-        n_tries--;
-        if (!n_tries)
+        static const char charset[] =
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+        static const size_t max_index = (sizeof(charset) - 2); // skipping \0 at the end
+        std::default_random_engine rng(std::random_device{}());
+        std::uniform_int_distribution<> dist(0, max_index);
+        auto randchar = [&]() -> char { return charset[ dist(rng) ]; };
+        std::generate_n( buf, len, randchar );
+    }
+
+    void create_random_dir(char* buf, int len, uint n_tries)
+    {
+        while (true)
         {
-            std::cerr << "Could not create directory with randomly-generated name in " << n_tries << " tries!" << std::endl;
-            throw std::runtime_error("Number of tries exhausted.");
+            _generate_random_name(buf, len);
+            if (FS::create_directory(buf)) 
+                break;
+            n_tries--;
+            if (!n_tries)
+            {
+                std::cerr << "Could not create directory with randomly-generated name in " << n_tries << " tries!" << std::endl;
+                throw std::runtime_error("Number of tries exhausted.");
+            }
         }
     }
-}
 
-bool FileUtils::_fileHasExt(const char* filename, const char* ext)
-{
-    FS::path filePath = filename;
-    if (filePath.extension() == ext)
-        return true;
-    return false;
-}
+    bool _fileHasExt(const char* filename, const char* ext)
+    {
+        FS::path filePath = filename;
+        if (filePath.extension() == ext)
+            return true;
+        return false;
+    }
 
 
 // InputFile classes //
 
-FileUtils::InputFileTXT::InputFileTXT(const char* infilename)
-{
-    m_infile.open(infilename);
-    check_fstream_ok<std::ifstream>(m_infile, infilename);
-}
+    InputFileTXT::InputFileTXT(const char* infilename)
+    {
+        m_infile.open(infilename);
+        check_fstream_ok<std::ifstream>(m_infile, infilename);
+    }
 
-FileUtils::InputFileGZ::InputFileGZ(const char* infilename)
-{
-    m_infile.open(infilename, std::ios_base::in | std::ios_base::binary);
-    check_fstream_ok<std::ifstream>(m_infile, infilename);
+    InputFileGZ::InputFileGZ(const char* infilename)
+    {
+        m_infile.open(infilename, std::ios_base::in | std::ios_base::binary);
+        check_fstream_ok<std::ifstream>(m_infile, infilename);
 
-    m_instream.push(boost::iostreams::gzip_decompressor());
-    m_instream.push(m_infile);
-}
+        m_instream.push(boost::iostreams::gzip_decompressor());
+        m_instream.push(m_infile);
+    }
 
 
 // InputFile factory //
 
-FileUtils::I_InputFile* FileUtils::openInputFile(const char* infilename)
-{
-    if (FileUtils::_fileHasExt(infilename, ".gz"))
+    I_InputFile* openInputFile(const char* infilename)
     {
-        return new FileUtils::InputFileGZ(infilename);
-    } else {
-        return new FileUtils::InputFileTXT(infilename);
+        if (_fileHasExt(infilename, ".gz"))
+        {
+            return new InputFileGZ(infilename);
+        } else {
+            return new InputFileTXT(infilename);
+        }
     }
-}
 
 
 // OutputFile classes //
 
-FileUtils::OutputFileTXT::OutputFileTXT(const char* outfilename)
-{
-    m_outfile.open(outfilename);
-    check_fstream_ok<std::ofstream>(m_outfile, outfilename);
-}
+    OutputFileTXT::OutputFileTXT(const char* outfilename)
+    {
+        m_outfile.open(outfilename);
+        check_fstream_ok<std::ofstream>(m_outfile, outfilename);
+    }
 
-FileUtils::OutputFileGZ::OutputFileGZ(const char* outfilename)
-{
-    m_outstream.push(boost::iostreams::gzip_compressor());
-    m_outstream.push(boost::iostreams::file_sink(outfilename, std::ofstream::binary));
-}
+    OutputFileGZ::OutputFileGZ(const char* outfilename)
+    {
+        m_outstream.push(boost::iostreams::gzip_compressor());
+        m_outstream.push(boost::iostreams::file_sink(outfilename, std::ofstream::binary));
+    }
 
 
 // OutputFile factory //
 
-FileUtils::I_OutputFile* FileUtils::openOutputFile(const char* outfilename)
-{
-    if (FileUtils::_fileHasExt(outfilename, ".gz"))
+    I_OutputFile* openOutputFile(const char* outfilename)
     {
-        return new FileUtils::OutputFileGZ(outfilename);
-    } else {
-        return new FileUtils::OutputFileTXT(outfilename);
+        if (_fileHasExt(outfilename, ".gz"))
+        {
+            return new OutputFileGZ(outfilename);
+        } else {
+            return new OutputFileTXT(outfilename);
+        }
     }
-}
 
+
+// ClusterFile class
+
+    // opens filepath <base_filename>.clusters for write
+    void ClusterFile::open(const char* base_filename)
+    {
+        m_file.open((boost::format("%1%.clusters") % base_filename).str());
+    }
+
+    void ClusterFile::write_cluster_head(const char* start, ssize_t n)
+    {
+        m_file.write(start, n);
+    }
+
+    void ClusterFile::write_cluster_item(const char* start, ssize_t n)
+    {
+        m_file.write("--", 2);
+        m_file.write(start, n);
+    }
 
 // TemporaryDirectory class //
 
-FileUtils::TemporaryDirectory::TemporaryDirectory()
-{
-    m_name = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
-    m_name[constants::DIRNAME_LEN] = '\0';
-    FileUtils::create_random_dir(m_name, constants::DIRNAME_LEN);
+    TemporaryDirectory::TemporaryDirectory()
+    {
+        m_name = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
+        m_name[constants::DIRNAME_LEN] = '\0';
+        create_random_dir(m_name, constants::DIRNAME_LEN);
 
-    m_sorted1 = (boost::format("%1%/data.sorted1") % m_name).str();
-    m_sorted2 = (boost::format("%1%/data.sorted2") % m_name).str();
+        m_sorted1 = (boost::format("%1%/data.sorted1") % m_name).str();
+        m_sorted2 = (boost::format("%1%/data.sorted2") % m_name).str();
+    }
+
+    TemporaryDirectory::~TemporaryDirectory()
+    {
+        FS::remove_all(m_name);
+        free(m_name);
+    }
+
 }
-
-FileUtils::TemporaryDirectory::~TemporaryDirectory()
-{
-    FS::remove_all(m_name);
-    free(m_name);
-}
-
-
 // These functions were used before but are no longer needed //
 
 [[deprecated]]

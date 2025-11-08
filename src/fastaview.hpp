@@ -12,10 +12,11 @@ public:
     FastaView& operator=(FastaView&&);
     void clear();
     bool isEmpty() const;
-    inline ssize_t size() const         { return m_idlen + m_seqlen; }
-    inline ssize_t seq_len() const      { return m_seqlen; }
-    inline const char* start() const    { return m_id; }
-    inline const char* seq() const      { return m_id + m_idlen; }
+    inline ssize_t size()       const   { return m_idlen + m_seqlen; }
+    inline ssize_t id_len()     const   { return m_idlen;}
+    inline ssize_t seq_len()    const   { return m_seqlen; }
+    inline const char* start()  const   { return m_id; }
+    inline const char* seq()    const   { return m_id + m_idlen; }
     int cmp(const FastaView&) const;
     friend bool operator>(const FastaView& left, const FastaView& right);
     friend bool operator<(const FastaView& left, const FastaView& right);

@@ -13,7 +13,13 @@ template<class T>
 class SeqDupRemover
 {
 public:
-    SeqDupRemover(ssize_t, BaseComparator*, TemporaryDirectory*);
+    SeqDupRemover(ssize_t memlimit, BaseComparator* comparator, TemporaryDirectory* tempdir, bool write_clusters) 
+        : m_memlimit(memlimit), m_comparator(comparator), m_tempdir(tempdir), m_write_clusters(write_clusters)
+    {
+        // perform longest duplicate save only for loose mode to save perfomance
+        if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
+            m_loose_comp = true;
+    }
     ~SeqDupRemover() {}
     void filterSE(const string&, const string&);
     void filterPE(const string&, const string&,
@@ -23,26 +29,12 @@ private:
     void impl_filterPE(const char*, const char*,
                        const char*, const char*);
 private:
-    bool m_loose_comp = false;
     ssize_t m_memlimit;
     BaseComparator* m_comparator;
     TemporaryDirectory* m_tempdir;
+    bool m_loose_comp = false;
+    bool m_write_clusters = false;
 };
-
-template<class T>
-SeqDupRemover<T>::SeqDupRemover(ssize_t memlimit,
-                                BaseComparator* comparator,
-                                TemporaryDirectory* tempdir)
-{
-    m_memlimit = memlimit;
-    m_comparator = comparator;
-    m_tempdir = tempdir;
-    // perform longest duplicate save only for loose mode to save perfomance
-    if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
-    {  
-        m_loose_comp = true;
-    }
-}
 
 template<class T>
 void SeqDupRemover<T>::filterSE(const string& infile,
@@ -63,6 +55,9 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
                                      const char* outfile)
 {
     std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfile)};
+    FileUtils::ClusterFile clusters_file;
+    if (m_write_clusters)
+        clusters_file.open(outfile);
 
     T obj;
     BufferedInput<T> buffer(m_memlimit);
@@ -70,7 +65,8 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
     obj = buffer.next();
     this->m_comparator->set_seq(obj.seq(), obj.seq_len());
     output_file->write(obj.start(), obj.size());
-    // TODO write clusters
+    if (m_write_clusters)
+        clusters_file.write_cluster_head(obj.start(), obj.id_len());
 
     while (!buffer.eof())
     {
@@ -81,12 +77,19 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
                 output_file->write(obj.start(), obj.size());
-            } else if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
-            {
-                // current sequence is a duplicate, but we need to keep the longest one as a reference
-               // this will not affect tight or hamming modes
-               this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-            }
+                if (m_write_clusters)
+                    clusters_file.write_cluster_head(obj.start(), obj.id_len());
+            } else {
+                if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
+                {
+                    // current sequence is a duplicate, but we need to keep the longest one as a reference
+                    // this will not affect tight or hamming modes
+                    this->m_comparator->set_seq(obj.seq(), obj.seq_len());
+                }
+
+                if (m_write_clusters)
+                    clusters_file.write_cluster_item(obj.start(), obj.id_len());
+            } 
         }
         buffer.refresh();
     }
@@ -120,6 +123,12 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
 {
     std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
     std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
+    FileUtils::ClusterFile clusters_file1, clusters_file2;
+    if (m_write_clusters)
+    {
+        clusters_file1.open(outfile1);
+        clusters_file2.open(outfile2);
+    }
 
     T left, right;
     BufferedInput<T> left_buffer(m_memlimit/2), right_buffer(m_memlimit/2);
@@ -132,6 +141,11 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
 
     output_file1->write(left.start(), left.size());
     output_file2->write(right.start(), right.size());
+    if (m_write_clusters)
+    {
+        clusters_file1.write_cluster_head(left.start(), left.id_len());
+        clusters_file2.write_cluster_head(right.start(), right.id_len());
+    }
 
     while (!left_buffer.eof() && !right_buffer.eof())
     {
@@ -146,14 +160,29 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                                             right.seq(), right.seq_len());
                 output_file1->write(left.start(), left.size());
                 output_file2->write(right.start(), right.size());
-            } else if ( m_loose_comp \
+                if (m_write_clusters)
+                {
+                    clusters_file1.write_cluster_head(left.start(), left.id_len());
+                    clusters_file2.write_cluster_head(right.start(), right.id_len());
+                }
+            } else {
+
+                if ( m_loose_comp \
                     && (this->m_comparator->left_len() <= left.seq_len()) \
                     && (this->m_comparator->right_len() <= right.seq_len()))
-            {
-                // current pair is a duplicate, but we need to keep the longest one as a reference
-               // this will not affect tight or hamming modes
-               this->m_comparator->set_seq(left.seq(), left.seq_len(),
-                                           right.seq(), right.seq_len());
+                {
+                    // current pair is a duplicate, but we need to keep the longest one as a reference
+                    // this will not affect tight or hamming modes
+                    this->m_comparator->set_seq(left.seq(), left.seq_len(),
+                                                right.seq(), right.seq_len());
+                }
+
+                if (m_write_clusters)
+                {
+                    clusters_file1.write_cluster_item(left.start(), left.id_len());
+                    clusters_file2.write_cluster_item(right.start(), right.id_len());
+                }
+
             }
         }
         left_buffer.refresh();

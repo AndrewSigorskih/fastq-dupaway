@@ -33,6 +33,7 @@ struct Options
     ComparatorType ctype = ComparatorType::CT_TIGHT;
     uint hammdist = 2;
     bool unordered = false;
+    bool write_clusters = false;
 };
 
 bool parse_args(int argc, char** argv, Options& opts)
@@ -62,6 +63,11 @@ bool parse_args(int argc, char** argv, Options& opts)
                                              " (default 2). Sequences of different lengths will not be compared.")
         ("distance", po::value<uint>(&opts.hammdist), "A threshold value for 'tail-hamming' distance calculation. Should be a non-negative integer."
                                                       " Default value is 2.")
+        ("write-clusters", po::bool_switch(&opts.write_clusters), "Write ids of identified duplicate clusters to a file using id of a preserved read\n"
+                                                                   "as a name of each cluster.\n"
+                                                                   "Resulting file is written in addition to main output and is named <output-file>.clusters\n"
+                                                                   "(2 cluster files are written in case of paired mode).\n"
+                                                                    "This option is only supported by the sequence-based modes.")
         ("fast", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
                                              "In this mode the program will run significantly faster, however no memory limit can be set"
                                              " and only complete duplicates will be filtered out.")
@@ -142,7 +148,7 @@ bool parse_args(int argc, char** argv, Options& opts)
             opts.ctype = ComparatorType::CT_NONE;
 
             // check if user provided arguments for seq-based modes
-            if (vm.count("compare-seq") || vm.count("distance"))
+            if (vm.count("compare-seq") || vm.count("distance") || opts.write_clusters)
                 throw std::runtime_error("--fast mode was enabled, but argument(s) for sequence-based mode were provided!");
         }
 
@@ -187,23 +193,23 @@ int main(int argc, char** argv)
 
         if (opts.mode == Modes::BASE) {
             // seq, single, fastq
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::FASTA) {
             // seq, single, fasta
-            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::PAIRED) {
             // seq, paired, fastq
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
             // seq, paired, fasta
-            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 

@@ -8,7 +8,6 @@
 #include <random>
 
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/device/file.hpp>
 
 using std::string;
 namespace FS = std::filesystem;
@@ -90,6 +89,21 @@ namespace FileUtils
 
     // OutputFile factory
     I_OutputFile* openOutputFile(const char* outfilename);
+
+
+    // File for storing clusters of duplicated reads
+    class ClusterFile
+    {
+    public:
+        ClusterFile() {}
+        ~ClusterFile() { if (m_file.is_open()) { m_file.close(); } }
+        void open(const char* base_filename);
+        void write_cluster_head(const char* start, ssize_t n);
+        void write_cluster_item(const char* start, ssize_t n);
+    private:
+        std::ofstream m_file;
+    };
+
 
     // Directory with randomly-generated name
     class TemporaryDirectory

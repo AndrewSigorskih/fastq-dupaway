@@ -12,10 +12,11 @@ public:
     FastqView& operator=(FastqView&& other);
     void clear();
     bool isEmpty() const;
-    inline ssize_t size() const         { return m_idlen+m_seqlen+m_field3len+m_quallen; }
-    inline ssize_t seq_len() const      { return m_seqlen; }
-    inline const char* start() const    { return m_id; }
-    inline const char* seq() const      { return m_id + m_idlen; }
+    inline ssize_t size()       const   { return m_idlen+m_seqlen+m_field3len+m_quallen; }
+    inline ssize_t id_len()     const   { return m_idlen;}
+    inline ssize_t seq_len()    const   { return m_seqlen; }
+    inline const char* start()  const   { return m_id; }
+    inline const char* seq()    const   { return m_id + m_idlen; }
     int cmp(const FastqView& other) const;
     friend bool operator>(const FastqView& left, const FastqView& right);
     friend bool operator<(const FastqView& left, const FastqView& right);
