@@ -102,23 +102,17 @@ template<class T>
 void HashDupRemover<T>::filterSE(const string& infile,
                                  const string& outfile)
 {
-    // gunzip file if needed
-    m_tempdir->set_files(infile);
-
     // deduplicate file
-    this->impl_filterSE(m_tempdir->input1().c_str(),
-                        m_tempdir->output1().c_str());
-
-    // save output
-    m_tempdir->save_output(outfile);
+    this->impl_filterSE(infile.c_str(), outfile.c_str());
 }
 
 template<class T>
 void HashDupRemover<T>::impl_filterSE(const char* infilename,
                                       const char* outfilename)
 {
-    std::ofstream output{outfilename};
-    check_fstream_ok<std::ofstream>(output, outfilename);
+    // std::ofstream output{outfilename};
+    // check_fstream_ok<std::ofstream>(output, outfilename);
+    std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfilename)};
 
     T obj;
     hashed_set records;
@@ -127,7 +121,8 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
 
     buffer.set_file(infilename);
     obj = buffer.next();
-    output << obj;
+    // output << obj;
+    output_file->write(obj.start(), obj.size());
     records.insert(std::move(setRecord(obj.seq(), obj.seq_len()-1)));
 
     while (!buffer.eof())
@@ -139,7 +134,8 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
             auto it = records.find(record);
             if (it == records.end())
             {   
-                output << obj;
+                // output << obj;
+                output_file->write(obj.start(), obj.size());
                 records.insert(std::move(record));
             }
         }
@@ -154,31 +150,31 @@ void HashDupRemover<T>::filterPE(const string& infile1,
                                  const string& outfile2,
                                  bool unordered_flag)
 {
-    // gunzip inputs if needed
-    m_tempdir->set_files(infile1, infile2);
-    string infilename1 = m_tempdir->input1();
-    string infilename2 = m_tempdir->input2();
+    string infilename1 = infile1;
+    string infilename2 = infile2;
 
     // sort both files by ID if needed
     if (unordered_flag)
     {
-        string tmp1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
-        string tmp2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
+        // string tmp1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
+        // string tmp2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
 
         // sort first file
         {
             ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
-            sorter.sort(infilename1.c_str(), tmp1.c_str());
+            sorter.sort(infilename1.c_str(), m_tempdir->sorted_left().c_str());
         }
 
         // sort second file
         {
             ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
-            sorter.sort(infilename2.c_str(), tmp2.c_str());
+            sorter.sort(infilename2.c_str(), m_tempdir->sorted_right().c_str());
         }
 
-        infilename1 = tmp1;
-        infilename2 = tmp2;
+        // infilename1 = tmp1;
+        // infilename2 = tmp2;
+        infilename1 = m_tempdir->sorted_left();
+        infilename2 = m_tempdir->sorted_right();
     }
 
     // deduplicate 2 files
@@ -186,17 +182,14 @@ void HashDupRemover<T>::filterPE(const string& infile1,
     {
         this->impl_filterPE_unordered(infilename1.c_str(),
                                       infilename2.c_str(),
-                                      m_tempdir->output1().c_str(),
-                                      m_tempdir->output2().c_str());
+                                      outfile1.c_str(),
+                                      outfile2.c_str());
     } else {
         this->impl_filterPE(infilename1.c_str(),
                             infilename2.c_str(),
-                            m_tempdir->output1().c_str(),
-                            m_tempdir->output2().c_str());
+                            outfile1.c_str(),
+                            outfile2.c_str());
     }
-    
-    // save outputs
-    m_tempdir->save_output(outfile1, outfile2);
 }
 
 template<class T>
@@ -205,10 +198,12 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
                                       const char* outfile1,
                                       const char* outfile2)
 {
-    std::ofstream output1{outfile1};
-    std::ofstream output2{outfile2};
-    check_fstream_ok<std::ofstream>(output1, outfile1);
-    check_fstream_ok<std::ofstream>(output2, outfile2);
+    // std::ofstream output1{outfile1};
+    // std::ofstream output2{outfile2};
+    // check_fstream_ok<std::ofstream>(output1, outfile1);
+    // check_fstream_ok<std::ofstream>(output2, outfile2);
+    std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
+    std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
 
     T left, right;
     paired_hashed_set records;
@@ -219,8 +214,10 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
     left = left_buffer.next();
     right = right_buffer.next();
 
-    output1 << left;
-    output2 << right;
+    // output1 << left;
+    // output2 << right;
+    output_file1->write(left.start(), left.size());
+    output_file2->write(right.start(), right.size());
     records.insert(
         std::move(
             setRecordPair(left.seq(), left.seq_len()-1,
@@ -234,14 +231,15 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
         {
             left = left_buffer.next();
             right = right_buffer.next();
-            // TODO add AND TEST unmatching ids case!!!
             setRecordPair record(left.seq(), left.seq_len()-1,
                                  right.seq(), right.seq_len()-1);
             auto it = records.find(record);
             if (it == records.end())
             {
-                output1 << left;
-                output2 << right;
+                // output1 << left;
+                // output2 << right;
+                output_file1->write(left.start(), left.size());
+                output_file2->write(right.start(), right.size());
                 records.insert(std::move(record));
             }
         }
@@ -256,10 +254,12 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
                                                 const char* outfile1,
                                                 const char* outfile2)
 {
-    std::ofstream output1{outfile1};
-    std::ofstream output2{outfile2};
-    check_fstream_ok<std::ofstream>(output1, outfile1);
-    check_fstream_ok<std::ofstream>(output2, outfile2);
+    // std::ofstream output1{outfile1};
+    // std::ofstream output2{outfile2};
+    // check_fstream_ok<std::ofstream>(output1, outfile1);
+    // check_fstream_ok<std::ofstream>(output2, outfile2);
+    std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
+    std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
 
     T left, right;
     paired_hashed_set records;
@@ -287,8 +287,10 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
                 auto it = records.find(record);
                 if (it == records.end())
                 {
-                    output1 << left;
-                    output2 << right;
+                    // output1 << left;
+                    // output2 << right;
+                    output_file1->write(left.start(), left.size());
+                    output_file2->write(right.start(), right.size());
                     records.insert(std::move(record));
                 }
                 left = left_buffer.next();
@@ -314,8 +316,10 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
         auto it = records.find(record);
         if (it == records.end())
         {
-            output1 << left;
-            output2 << right;
+            // output1 << left;
+            // output2 << right;
+            output_file1->write(left.start(), left.size());
+            output_file2->write(right.start(), right.size());
         }
     }
 }

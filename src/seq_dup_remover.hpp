@@ -48,35 +48,29 @@ template<class T>
 void SeqDupRemover<T>::filterSE(const string& infile,
                                 const string& outfile)
 {
-    // gunzip file if needed
-    m_tempdir->set_files(infile);
-
-    string sorted = (boost::format("%1%/data.sorted") % m_tempdir->name()).str();
     {   // sort input file in a scope so all buffers deallocate
         ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
-        sorter.sort(m_tempdir->input1().c_str(), sorted.c_str());
+        sorter.sort(infile.c_str(), m_tempdir->sorted_left().c_str());
     }
 
     // deduplicate file
-    this->impl_filterSE(sorted.c_str(), m_tempdir->output1().c_str());
+    this->impl_filterSE(m_tempdir->sorted_left().c_str(), outfile.c_str());
     
-    // save output
-    m_tempdir->save_output(outfile);
 }
 
 template<class T>
 void SeqDupRemover<T>::impl_filterSE(const char* infile,
                                      const char* outfile)
 {
-    std::ofstream output{outfile};
-    check_fstream_ok<std::ofstream>(output, outfile);
+    std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfile)};
 
     T obj;
     BufferedInput<T> buffer(m_memlimit);
     buffer.set_file(infile);
     obj = buffer.next();
     this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-    output << obj;
+    output_file->write(obj.start(), obj.size());
+    // TODO write clusters
 
     while (!buffer.eof())
     {
@@ -86,7 +80,7 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
             if (!(this->m_comparator->compare(obj.seq(), obj.seq_len())))
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-                output << obj;
+                output_file->write(obj.start(), obj.size());
             } else if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
             {
                 // current sequence is a duplicate, but we need to keep the longest one as a reference
@@ -104,25 +98,18 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
                                 const string& outfile1,
                                 const string& outfile2)
 {
-    m_tempdir->set_files(infile1, infile2);
-    // string infilename1 = infile1, infilename2 = infile2;
-    
-    string sorted1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
-    string sorted2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
     {  // sort input files in a scope so all buffers deallocate
         PairedExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
-        sorter.sort(m_tempdir->input1().c_str(),
-                    m_tempdir->input2().c_str(),
-                    sorted1.c_str(),
-                    sorted2.c_str());
+        sorter.sort(infile1.c_str(),
+                    infile2.c_str(),
+                    m_tempdir->sorted_left().c_str(),
+                    m_tempdir->sorted_right().c_str());
     }
 
-    this->impl_filterPE(sorted1.c_str(),
-                        sorted2.c_str(),
-                        m_tempdir->output1().c_str(),
-                        m_tempdir->output2().c_str());
-    // save outputs
-    m_tempdir->save_output(outfile1, outfile2);
+    this->impl_filterPE(m_tempdir->sorted_left().c_str(),
+                        m_tempdir->sorted_right().c_str(),
+                        outfile1.c_str(),
+                        outfile2.c_str());
 }
 
 template<class T>
@@ -131,10 +118,8 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                                      const char* outfile1,
                                      const char* outfile2)
 {
-    std::ofstream output1{outfile1};
-    std::ofstream output2{outfile2};
-    check_fstream_ok<std::ofstream>(output1, outfile1);
-    check_fstream_ok<std::ofstream>(output2, outfile2);
+    std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
+    std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
 
     T left, right;
     BufferedInput<T> left_buffer(m_memlimit/2), right_buffer(m_memlimit/2);
@@ -144,8 +129,9 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
     right = right_buffer.next();
     this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                 right.seq(), right.seq_len());
-    output1 << left;
-    output2 << right;
+
+    output_file1->write(left.start(), left.size());
+    output_file2->write(right.start(), right.size());
 
     while (!left_buffer.eof() && !right_buffer.eof())
     {
@@ -158,8 +144,8 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
             {  // current pair differs -> load it as a new ref
                 this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                             right.seq(), right.seq_len());
-                output1 << left;
-                output2 << right;
+                output_file1->write(left.start(), left.size());
+                output_file2->write(right.start(), right.size());
             } else if ( m_loose_comp \
                     && (this->m_comparator->left_len() <= left.seq_len()) \
                     && (this->m_comparator->right_len() <= right.seq_len()))
