@@ -54,7 +54,8 @@ template<class T>
 void SeqDupRemover<T>::impl_filterSE(const char* infile,
                                      const char* outfile)
 {
-    std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfile)};
+    // std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfile)};
+    FileUtils::UniversalOutputFile output_file{outfile};
     FileUtils::ClusterFile clusters_file;
     if (m_write_clusters)
         clusters_file.open(outfile);
@@ -64,7 +65,8 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
     buffer.set_file(infile);
     obj = buffer.next();
     this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-    output_file->write(obj.start(), obj.size());
+    //output_file->write(obj.start(), obj.size());
+    output_file.write(obj.start(), obj.size());
     if (m_write_clusters)
         clusters_file.write_cluster_head(obj.start(), obj.id_len());
 
@@ -76,7 +78,8 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
             if (!(this->m_comparator->compare(obj.seq(), obj.seq_len())))
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-                output_file->write(obj.start(), obj.size());
+                //output_file->write(obj.start(), obj.size());
+                output_file.write(obj.start(), obj.size());
                 if (m_write_clusters)
                     clusters_file.write_cluster_head(obj.start(), obj.id_len());
             } else {
@@ -121,8 +124,10 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                                      const char* outfile1,
                                      const char* outfile2)
 {
-    std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
-    std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
+    // std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
+    // std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
+    FileUtils::UniversalOutputFile output_file1{outfile1};
+    FileUtils::UniversalOutputFile output_file2{outfile2};
     FileUtils::ClusterFile clusters_file1, clusters_file2;
     if (m_write_clusters)
     {
@@ -139,8 +144,10 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
     this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                 right.seq(), right.seq_len());
 
-    output_file1->write(left.start(), left.size());
-    output_file2->write(right.start(), right.size());
+    // output_file1->write(left.start(), left.size());
+    // output_file2->write(right.start(), right.size());
+    output_file1.write(left.start(), left.size());
+    output_file2.write(right.start(), right.size());
     if (m_write_clusters)
     {
         clusters_file1.write_cluster_head(left.start(), left.id_len());
@@ -158,8 +165,10 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
             {  // current pair differs -> load it as a new ref
                 this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                             right.seq(), right.seq_len());
-                output_file1->write(left.start(), left.size());
-                output_file2->write(right.start(), right.size());
+                // output_file1->write(left.start(), left.size());
+                // output_file2->write(right.start(), right.size());
+                output_file1.write(left.start(), left.size());
+                output_file2.write(right.start(), right.size());
                 if (m_write_clusters)
                 {
                     clusters_file1.write_cluster_head(left.start(), left.id_len());

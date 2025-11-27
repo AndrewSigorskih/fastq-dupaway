@@ -90,6 +90,16 @@ namespace FileUtils
     // OutputFile factory
     I_OutputFile* openOutputFile(const char* outfilename);
 
+    // Test the non-polymorphic class for outputfile TODO remove this comment
+    class UniversalOutputFile
+    {
+    public:
+        UniversalOutputFile(const char* outfilename);
+        ~UniversalOutputFile()                              { }
+        void write(const char* start, std::streamsize n)    { m_outstream.write(start, n); }
+    private:
+        boost::iostreams::filtering_ostream m_outstream;
+    };
 
     // File for storing clusters of duplicated reads
     class ClusterFile

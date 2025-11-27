@@ -106,6 +106,18 @@ namespace FileUtils
         }
     }
 
+// UniversalOutputFile class
+    UniversalOutputFile::UniversalOutputFile(const char* outfilename)
+    {
+        if (_fileHasExt(outfilename, ".gz"))
+        {
+            m_outstream.push(boost::iostreams::gzip_compressor());
+            m_outstream.push(boost::iostreams::file_sink(outfilename, std::ofstream::binary));
+        } else {
+            m_outstream.push(boost::iostreams::file_sink(outfilename));
+        }
+    }
+
 
 // ClusterFile class
 
