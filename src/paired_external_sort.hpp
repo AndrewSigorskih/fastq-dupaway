@@ -60,22 +60,19 @@ private:
     void reserve(ssize_t);
     void saveOutput(ssize_t, const char*, const char*);
 private:
-    ssize_t m_memlimit, m_filesNum;
-    char* m_tempdir;
+    const char* m_tempdir = "chunks";
     const char* m_workdir;
+    ssize_t m_memlimit, m_filesNum;
     std::priority_queue<PairedQueueNode<T>, std::vector<PairedQueueNode<T>>> m_queue;
     std::vector<BufferedInput<T>> m_buffers;
 };
 
 template <class T>
 PairedExternalSorter<T>::PairedExternalSorter(ssize_t memlimit,
-                                              const char* workdir) : m_workdir(workdir)
+                                              const char* workdir) : m_workdir(workdir), m_memlimit(memlimit)
 {
-    m_memlimit = memlimit;
-    m_tempdir = (char*)malloc(sizeof(char)*(constants::DIRNAME_LEN + 1));
-    m_tempdir[constants::DIRNAME_LEN] = '\0';
     std::ignore = chdir(m_workdir);
-    FileUtils::create_random_dir(m_tempdir, constants::DIRNAME_LEN);
+    FS::create_directory(m_tempdir);
     std::ignore = chdir("..");
 }
 
@@ -85,7 +82,6 @@ PairedExternalSorter<T>::~PairedExternalSorter()
     std::ignore = chdir(m_workdir);
     FS::remove_all(m_tempdir);
     std::ignore = chdir("..");
-    free(m_tempdir);
 }
 
 template <class T>
