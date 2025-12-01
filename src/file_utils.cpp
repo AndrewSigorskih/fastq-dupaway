@@ -111,10 +111,10 @@ namespace FileUtils
     {
         if (_fileHasExt(outfilename, ".gz"))
         {
-            m_outstream.push(boost::iostreams::gzip_compressor());
-            m_outstream.push(boost::iostreams::file_sink(outfilename, std::ofstream::binary));
+            m_outstream.push(boost::iostreams::gzip_compressor(), static_cast<std::streamsize>(64 * 1024));
+            m_outstream.push(boost::iostreams::file_sink(outfilename, std::ofstream::binary), static_cast<std::streamsize>(64 * 1024));
         } else {
-            m_outstream.push(boost::iostreams::file_sink(outfilename));
+            m_outstream.push(boost::iostreams::file_sink(outfilename), static_cast<std::streamsize>(256 * 1024));
         }
     }
 

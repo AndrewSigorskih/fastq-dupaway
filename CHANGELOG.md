@@ -1,12 +1,16 @@
 # fastq-dupaway change log
 
+## [ Planned ]
+
+- [TODO] increase user-defined upper memory limit to 20G
+- [TODO] Buffer disk write operations with ~32-64kb buffers
+
 ## [ 1.5 ] - Dec ?, 2025
 
 - Added "write-clusters" option for sequence-based modes
 - Added output streaming for gzipped files
 - Overall optimization of outputs saving
 - Switched to use fixed name for internal chunks subdir
-- [TODO] increase user-defined upper memory limit to 20G
 
 ## [ 1.4 ] - Sep 4, 2025
 

@@ -90,7 +90,7 @@ namespace FileUtils
     // OutputFile factory
     I_OutputFile* openOutputFile(const char* outfilename);
 
-    // Test the non-polymorphic class for outputfile TODO remove this comment
+    // Universal concrete class for saving final outputs
     class UniversalOutputFile
     {
     public:
