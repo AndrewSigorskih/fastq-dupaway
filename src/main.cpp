@@ -31,8 +31,9 @@ struct Options
     ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
     ComparatorType ctype = ComparatorType::CT_TIGHT;
-    uint hammdist = 2;
-    bool unordered = false;
+    uint hammdist       = 2;
+    bool unordered      = false;
+    bool verbose        = false;
     bool write_clusters = false;
 };
 
@@ -44,6 +45,7 @@ bool parse_args(int argc, char** argv, Options& opts)
         po::options_description desc ("Supported options");
         desc.add_options()
         ("help,h", "Produce help message and exit")
+        ("verbose,v", po::bool_switch(&opts.verbose), "Report run summary after program execution.")
         ("input-1,i", po::value<string>(&opts.input_1)->required(), "First input file (required)")
         ("input-2,u", po::value<string>(&opts.input_2), "Second input file (optional, enables paired-end mode)")
         ("output-1,o", po::value<string>(&opts.output_1)->required(), "First output file (required)")
@@ -193,48 +195,48 @@ int main(int argc, char** argv)
 
         if (opts.mode == Modes::BASE) {
             // seq, single, fastq
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::FASTA) {
             // seq, single, fasta
-            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::PAIRED) {
             // seq, paired, fastq
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
             // seq, paired, fasta
-            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters);
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == Modes::HASH) {
             // hash, single, fastq
             //HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir); // slight optimization
-            HashDupRemover<FastqView> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastqView> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
             // hash, single, fasta
             //HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir); // slight optimization
-            HashDupRemover<FastaView> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastaView> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             // hash, paired, fastq
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
                              opts.unordered);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
             // hash, paired, fasta
-            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
                              opts.unordered);

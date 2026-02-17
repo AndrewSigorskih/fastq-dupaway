@@ -13,8 +13,8 @@ template<class T>
 class SeqDupRemover
 {
 public:
-    SeqDupRemover(ssize_t memlimit, BaseComparator* comparator, TemporaryDirectory* tempdir, bool write_clusters) 
-        : m_memlimit(memlimit), m_comparator(comparator), m_tempdir(tempdir), m_write_clusters(write_clusters)
+    SeqDupRemover(ssize_t memlimit, BaseComparator* comparator, TemporaryDirectory* tempdir, bool write_clusters, bool verbose) 
+        : m_memlimit(memlimit), m_comparator(comparator), m_tempdir(tempdir), m_write_clusters(write_clusters), m_verbose(verbose)
     {
         // perform longest duplicate save only for loose mode to save perfomance
         if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
@@ -32,8 +32,9 @@ private:
     ssize_t m_memlimit;
     BaseComparator* m_comparator;
     TemporaryDirectory* m_tempdir;
-    bool m_loose_comp = false;
-    bool m_write_clusters = false;
+    bool m_loose_comp       = false;
+    bool m_write_clusters   = false;
+    bool m_verbose          = false;
 };
 
 template<class T>
@@ -62,8 +63,12 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
 
     T obj;
     BufferedInput<T> buffer(m_memlimit);
+    size_t tot_reads = 0ul, dup_reads = 0ul;
+
     buffer.set_file(infile);
     obj = buffer.next();
+    tot_reads++;
+
     this->m_comparator->set_seq(obj.seq(), obj.seq_len());
     //output_file->write(obj.start(), obj.size());
     output_file.write(obj.start(), obj.size());
@@ -75,6 +80,7 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
         while (!buffer.block_end())
         {
             obj = buffer.next();
+            tot_reads++;
             if (!(this->m_comparator->compare(obj.seq(), obj.seq_len())))
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
@@ -83,6 +89,7 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
                 if (m_write_clusters)
                     clusters_file.write_cluster_head(obj.start(), obj.id_len());
             } else {
+                dup_reads++;
                 if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
                 {
                     // current sequence is a duplicate, but we need to keep the longest one as a reference
@@ -96,6 +103,9 @@ void SeqDupRemover<T>::impl_filterSE(const char* infile,
         }
         buffer.refresh();
     }
+
+    if (m_verbose)
+        std::cout << tot_reads << " reads processed, out of which " << dup_reads << " duplicates were removed.\n";
 }
 
 template<class T>
@@ -137,10 +147,14 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
 
     T left, right;
     BufferedInput<T> left_buffer(m_memlimit/2), right_buffer(m_memlimit/2);
+    size_t tot_reads = 0ul, dup_reads = 0ul;
+
     left_buffer.set_file(infile1);
     right_buffer.set_file(infile2);
     left = left_buffer.next();
     right = right_buffer.next();
+    tot_reads++;
+
     this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                 right.seq(), right.seq_len());
 
@@ -160,6 +174,7 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
         {
             left = left_buffer.next();
             right = right_buffer.next();
+            tot_reads++;
             if (!(this->m_comparator->compare(left.seq(), left.seq_len(),
                                               right.seq(), right.seq_len())))
             {  // current pair differs -> load it as a new ref
@@ -175,7 +190,7 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                     clusters_file2.write_cluster_head(right.start(), right.id_len());
                 }
             } else {
-
+                dup_reads++;
                 if ( m_loose_comp \
                     && (this->m_comparator->left_len() <= left.seq_len()) \
                     && (this->m_comparator->right_len() <= right.seq_len()))
@@ -197,4 +212,7 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
         left_buffer.refresh();
         right_buffer.refresh();
     }
+
+    if (m_verbose)
+        std::cout << tot_reads << " read pairs processed, out of which " << dup_reads << " duplicates were removed.\n";
 }

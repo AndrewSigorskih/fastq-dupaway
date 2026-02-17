@@ -74,7 +74,8 @@ template<class T>
 class HashDupRemover
 {
 public:
-    HashDupRemover(ssize_t, TemporaryDirectory*);
+    HashDupRemover(ssize_t memlimit, TemporaryDirectory* tempdir, bool verbose)
+        : m_memlimit(memlimit), m_tempdir(tempdir), m_verbose(verbose) {}
     ~HashDupRemover() {}
     void filterSE(const string&, const string&);
     void filterPE(const string&, const string&,
@@ -87,16 +88,11 @@ private:
     void impl_filterPE_unordered(const char*, const char*,
                                  const char*, const char*);
 private:
-    ssize_t m_memlimit;
+    ssize_t             m_memlimit;
     TemporaryDirectory* m_tempdir;
+    bool                m_verbose;
 };
 
-template<class T>
-HashDupRemover<T>::HashDupRemover(ssize_t memlimit, TemporaryDirectory* tempdir)
-{
-    this->m_memlimit = memlimit;
-    this->m_tempdir = tempdir;
-}
 
 template<class T>
 void HashDupRemover<T>::filterSE(const string& infile,
@@ -117,9 +113,12 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     hashed_set records;
     records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> buffer(5L * constants::HUNDRED_MB);
+    size_t tot_reads = 0ul, dup_reads = 0ul;
 
     buffer.set_file(infilename);
     obj = buffer.next();
+    tot_reads++;
+
     // output_file->write(obj.start(), obj.size());
     output_file.write(obj.start(), obj.size());
     records.insert(std::move(setRecord(obj.seq(), obj.seq_len()-1)));
@@ -130,16 +129,22 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
         {
             obj = buffer.next();
             setRecord record(obj.seq(), obj.seq_len()-1);
+            tot_reads++;
             auto it = records.find(record);
             if (it == records.end())
             {   
                 // output_file->write(obj.start(), obj.size());
                 output_file.write(obj.start(), obj.size());
                 records.insert(std::move(record));
+            } else {
+                dup_reads++;
             }
         }
         buffer.refresh();
     }
+
+    if (m_verbose)
+        std::cout << tot_reads << " reads processed, out of which " << dup_reads << " duplicates were removed.\n";
 }
 
 template<class T>
@@ -201,10 +206,13 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
     paired_hashed_set records;
     records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> left_buffer(5L * constants::HUNDRED_MB), right_buffer(5L * constants::HUNDRED_MB);
+    size_t tot_reads = 0ul, dup_reads = 0ul;
+
     left_buffer.set_file(infile1);
     right_buffer.set_file(infile2);
     left = left_buffer.next();
     right = right_buffer.next();
+    tot_reads++;
 
     // output_file1->write(left.start(), left.size());
     // output_file2->write(right.start(), right.size());
@@ -225,6 +233,7 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
             right = right_buffer.next();
             setRecordPair record(left.seq(), left.seq_len()-1,
                                  right.seq(), right.seq_len()-1);
+            tot_reads++;
             auto it = records.find(record);
             if (it == records.end())
             {
@@ -233,11 +242,16 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
                 output_file1.write(left.start(), left.size());
                 output_file2.write(right.start(), right.size());
                 records.insert(std::move(record));
+            } else {
+                dup_reads++;
             }
         }
         left_buffer.refresh();
         right_buffer.refresh();
     }
+
+    if (m_verbose)
+        std::cout << tot_reads << " read pairs processed, out of which " << dup_reads << " duplicates were removed.\n";
 }
 
 template<class T>
@@ -255,6 +269,8 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
     paired_hashed_set records;
     records.reserve(ONE_MIL);  // TODO optimize this value?
     BufferedInput<T> left_buffer(5L * constants::HUNDRED_MB), right_buffer(5L * constants::HUNDRED_MB);
+    size_t tot_reads = 0ul, dup_reads = 0ul, unmatch_reads = 0ul;
+
     left_buffer.set_file(infile1);
     right_buffer.set_file(infile2);
     left = left_buffer.next();
@@ -268,12 +284,15 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
             if (cmp < 0)
             {
                 left = left_buffer.next();
+                unmatch_reads++;
             } else if (cmp > 0) {
                 right = right_buffer.next();
+                unmatch_reads++;
             } else {
                 // tags are equal, we can proceed
                 setRecordPair record(left.seq(), left.seq_len()-1,
                                  right.seq(), right.seq_len()-1);
+                tot_reads++;
                 auto it = records.find(record);
                 if (it == records.end())
                 {
@@ -282,6 +301,8 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
                     output_file1.write(left.start(), left.size());
                     output_file2.write(right.start(), right.size());
                     records.insert(std::move(record));
+                } else {
+                    dup_reads++;
                 }
                 left = left_buffer.next();
                 right = right_buffer.next();
@@ -298,11 +319,14 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
     if (cmp < 0)
     {
         left = left_buffer.next();
+        unmatch_reads++;
     } else if (cmp > 0) {
         right = right_buffer.next();
+        unmatch_reads++;
     } else {
         setRecordPair record(left.seq(), left.seq_len()-1,
                             right.seq(), right.seq_len()-1);
+        tot_reads++;
         auto it = records.find(record);
         if (it == records.end())
         {
@@ -310,6 +334,14 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
             // output_file2->write(right.start(), right.size());
             output_file1.write(left.start(), left.size());
             output_file2.write(right.start(), right.size());
+        } else {
+            dup_reads++;
         }
+    }
+
+    if (m_verbose)
+    {
+        std::cout << tot_reads << " valid read pairs processed, out of which " << dup_reads << " duplicates were removed.\n";
+        std::cout << unmatch_reads << " Non-matching entries from both files were skipped.\n";
     }
 }

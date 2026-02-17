@@ -2,15 +2,17 @@
 
 ## [ Planned ]
 
-- [TODO] increase user-defined upper memory limit to 20G
-- [TODO] Buffer disk write operations with ~32-64kb buffers
+- [TODO] Increase user-defined upper memory limit to 20G
+- [TODO] Further optimize size of output write buffers
 
-## [ 1.5 ] - Dec ?, 2025
+## [ 1.5 ] - Feb ?, 2026
 
 - Added "write-clusters" option for sequence-based modes
+- Added "verbose" option to print summary after program execution
 - Added output streaming for gzipped files
-- Overall optimization of outputs saving
+- Overall optimization of outputs saving logic, skipping creation of some intermediate files
 - Switched to use fixed name for internal chunks subdir
+- Introduced an increased size buffer for disk write operations, reducing number of separate writev calls by up to 40%
 
 ## [ 1.4 ] - Sep 4, 2025
 
@@ -27,7 +29,7 @@
 
 ## [ 1.2 ] - Feb 9, 2025 
 
-- Added CMake recipies
+- Added CMake build support
 - Various small optimizations and bug fixes
 
 ## [ 1.1 ] - 2024

@@ -151,6 +151,7 @@ Complete list of options with explanations is listed in the table below.
 Option|Value|Mode|Description
 ---|---|---|---
 -h/--help|-|-|Produce help message and exit.
+-v/--verbose|-|Both|Report run summary after program execution.
 -i/--input-1|string|Both|First input file (required).
 -u/--input-2|string|Both|Second input file (optional, enables paired-end mode).
 -o/--output-1|string|Both|First output file (required).
