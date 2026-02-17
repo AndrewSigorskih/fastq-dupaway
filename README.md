@@ -182,3 +182,9 @@ Then run tests using pytest:
 ```bash
 pytest -v test/
 ```
+
+## How to cite
+
+To cite fastq-dupaway in publications, please use
+
+<i>Sigorskikh, A.I., Kompaniets, M.A., Ilnitskiy, I.S. et al. Fastq-dupaway: a fast and memory-efficient tool for deduplication of single- and paired-end NGS data. Sci Rep 15, 45303 (2025).</i> [https://doi.org/10.1038/s41598-025-28948-w](https://doi.org/10.1038/s41598-025-28948-w)
