@@ -67,29 +67,6 @@ namespace FileUtils
         virtual void write(const char* start, std::streamsize n) = 0;
     };
 
-    class OutputFileTXT : public I_OutputFile
-    {
-    public:
-        OutputFileTXT(const char* outfilename);
-        ~OutputFileTXT()                                    { m_outfile.close(); }
-        void write(const char* start, std::streamsize n)    { m_outfile.write(start, n); }
-    private:
-        std::ofstream m_outfile;
-    };
-
-    class OutputFileGZ : public I_OutputFile
-    {
-    public:
-        OutputFileGZ(const char* outfilename);
-        ~OutputFileGZ()                                     { }
-        void write(const char* start, std::streamsize n)    { m_outstream.write(start, n); }
-    private:
-        boost::iostreams::filtering_ostream m_outstream;
-    };
-
-    // OutputFile factory
-    I_OutputFile* openOutputFile(const char* outfilename);
-
     // Universal concrete class for saving final outputs
     class UniversalOutputFile
     {

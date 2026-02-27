@@ -79,33 +79,6 @@ namespace FileUtils
     }
 
 
-// OutputFile classes //
-
-    OutputFileTXT::OutputFileTXT(const char* outfilename)
-    {
-        m_outfile.open(outfilename);
-        check_fstream_ok<std::ofstream>(m_outfile, outfilename);
-    }
-
-    OutputFileGZ::OutputFileGZ(const char* outfilename)
-    {
-        m_outstream.push(boost::iostreams::gzip_compressor());
-        m_outstream.push(boost::iostreams::file_sink(outfilename, std::ofstream::binary));
-    }
-
-
-// OutputFile factory //
-
-    I_OutputFile* openOutputFile(const char* outfilename)
-    {
-        if (_fileHasExt(outfilename, ".gz"))
-        {
-            return new OutputFileGZ(outfilename);
-        } else {
-            return new OutputFileTXT(outfilename);
-        }
-    }
-
 // UniversalOutputFile class
     UniversalOutputFile::UniversalOutputFile(const char* outfilename)
     {
@@ -159,7 +132,7 @@ namespace FileUtils
 }
 // These functions were used before but are no longer needed //
 
-[[deprecated]]
+[[deprecated("Legacy code, to be removed")]]
 void FileUtils::_decompress_gz(const char* infilename, const char* outfilename)
 {
     std::ifstream infile(infilename, std::ios_base::in | std::ios_base::binary);
@@ -173,7 +146,7 @@ void FileUtils::_decompress_gz(const char* infilename, const char* outfilename)
     boost::iostreams::copy(inbuf, outfile);
 }
 
-[[deprecated]]
+[[deprecated("Legacy code, to be removed")]]
 void FileUtils::_compress_gz(const char* infilename, const char* outfilename)
 {
     std::ifstream infile(infilename);
@@ -189,7 +162,7 @@ void FileUtils::_compress_gz(const char* infilename, const char* outfilename)
     boost::iostreams::close(inbuf);
 }
 
-[[deprecated]]
+[[deprecated("Legacy code, to be removed")]]
 void FileUtils::_move_file_smart(const char* infilename, const char* outfilename)
 {
     try {
