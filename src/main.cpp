@@ -31,8 +31,10 @@ struct Options
     ssize_t memLimit = constants::TWO_GB;
     string input_1, input_2, output_1, output_2;
     ComparatorType ctype = ComparatorType::CT_TIGHT;
-    uint hammdist = 2;
-    bool unordered = false;
+    uint hammdist       = 2;
+    bool unordered      = false;
+    bool verbose        = false;
+    bool write_clusters = false;
 };
 
 bool parse_args(int argc, char** argv, Options& opts)
@@ -43,6 +45,7 @@ bool parse_args(int argc, char** argv, Options& opts)
         po::options_description desc ("Supported options");
         desc.add_options()
         ("help,h", "Produce help message and exit")
+        ("verbose,v", po::bool_switch(&opts.verbose), "Report run summary after program execution.")
         ("input-1,i", po::value<string>(&opts.input_1)->required(), "First input file (required)")
         ("input-2,u", po::value<string>(&opts.input_2), "Second input file (optional, enables paired-end mode)")
         ("output-1,o", po::value<string>(&opts.output_1)->required(), "First output file (required)")
@@ -62,6 +65,11 @@ bool parse_args(int argc, char** argv, Options& opts)
                                              " (default 2). Sequences of different lengths will not be compared.")
         ("distance", po::value<uint>(&opts.hammdist), "A threshold value for 'tail-hamming' distance calculation. Should be a non-negative integer."
                                                       " Default value is 2.")
+        ("write-clusters", po::bool_switch(&opts.write_clusters), "Write ids of identified duplicate clusters to a file using id of a preserved read\n"
+                                                                   "as a name of each cluster.\n"
+                                                                   "Resulting file is written in addition to main output and is named <output-file>.clusters\n"
+                                                                   "(2 cluster files are written in case of paired mode).\n"
+                                                                    "This option is only supported by the sequence-based modes.")
         ("fast", po::bool_switch(&hash_opt), "Use hash-based approach instead of sequence-based.\n"
                                              "In this mode the program will run significantly faster, however no memory limit can be set"
                                              " and only complete duplicates will be filtered out.")
@@ -84,11 +92,20 @@ bool parse_args(int argc, char** argv, Options& opts)
 
         // check whether PE mode args passed correctly
         if (vm.count("input-2") ^ vm.count("output-2"))
-        { throw std::runtime_error("Both input-2 and output-2 arguments are required for paired-end mode!"); }
+            throw std::runtime_error("Both input-2 and output-2 arguments are required for paired-end mode!");
 
         // paired or single mode
         if (vm.count("input-2"))
-        { opts.mode  = (opts.mode | Modes::PAIRED); }
+            opts.mode = (opts.mode | Modes::PAIRED);
+
+        // check if both files in pair reference the same file
+        if (vm.count("input-2"))
+        {
+            if (opts.input_1 == opts.input_2)
+                throw std::runtime_error("Paired input files should not be the same file!");
+            if (opts.output_1 == opts.output_2)
+                throw std::runtime_error("Paired output files should not be the same file!");
+        }
 
         // file format check
         if (vm.count("format"))
@@ -133,7 +150,7 @@ bool parse_args(int argc, char** argv, Options& opts)
             opts.ctype = ComparatorType::CT_NONE;
 
             // check if user provided arguments for seq-based modes
-            if (vm.count("compare-seq") || vm.count("distance"))
+            if (vm.count("compare-seq") || vm.count("distance") || opts.write_clusters)
                 throw std::runtime_error("--fast mode was enabled, but argument(s) for sequence-based mode were provided!");
         }
 
@@ -178,48 +195,48 @@ int main(int argc, char** argv)
 
         if (opts.mode == Modes::BASE) {
             // seq, single, fastq
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::FASTA) {
             // seq, single, fasta
-            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == Modes::PAIRED) {
             // seq, paired, fastq
-            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastqView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == (Modes::FASTA | Modes::PAIRED)) {
             // seq, paired, fasta
-            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir);
+            SeqDupRemover<FastaView> remover(opts.memLimit, comp, &tempdir, opts.write_clusters, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2);
 
         } else if (opts.mode == Modes::HASH) {
             // hash, single, fastq
             //HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir); // slight optimization
-            HashDupRemover<FastqView> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastqView> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::FASTA)) {
             // hash, single, fasta
             //HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir); // slight optimization
-            HashDupRemover<FastaView> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastaView> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterSE(opts.input_1, opts.output_1);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED)) {
             // hash, paired, fastq
-            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastqViewWithId> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
                              opts.unordered);
 
         } else if (opts.mode == (Modes::HASH | Modes::PAIRED | Modes::FASTA)) {
             // hash, paired, fasta
-            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir);
+            HashDupRemover<FastaViewWithId> remover(opts.memLimit, &tempdir, opts.verbose);
             remover.filterPE(opts.input_1, opts.input_2,
                              opts.output_1, opts.output_2,
                              opts.unordered);

@@ -15,12 +15,13 @@ namespace FS = std::filesystem;
 namespace FileUtils
 {
     void _generate_random_name(char* buf, int len);
-    bool _fileHasExt(const char* filename, const char* ext=".gz");
-    void _decompress_gz(const char* infilename, const char* outfilename);
-    void _compress_gz(const char* infilename, const char* outfilename);
-    void _move_file_smart(const char* infilename, const char* outfilename);
     void create_random_dir(char* buf, int len, uint n_tries = 100);
-
+    bool _fileHasExt(const char* filename, const char* ext=".gz");
+    [[deprecated]] void _decompress_gz(const char* infilename, const char* outfilename);
+    [[deprecated]] void _compress_gz(const char* infilename, const char* outfilename);
+    [[deprecated]] void _move_file_smart(const char* infilename, const char* outfilename);
+    
+    // InputFile abstraction
     class I_InputFile
     {
     public:
@@ -58,27 +59,52 @@ namespace FileUtils
     // InputFile factory
     I_InputFile* openInputFile(const char* infilename);
 
+    // OutputFile abstraction
+    class I_OutputFile
+    {
+    public:
+        virtual ~I_OutputFile() {}
+        virtual void write(const char* start, std::streamsize n) = 0;
+    };
 
+    // Universal concrete class for saving final outputs
+    class UniversalOutputFile
+    {
+    public:
+        UniversalOutputFile(const char* outfilename);
+        ~UniversalOutputFile()                              { }
+        void write(const char* start, std::streamsize n)    { m_outstream.write(start, n); }
+    private:
+        boost::iostreams::filtering_ostream m_outstream;
+    };
+
+    // File for storing clusters of duplicated reads
+    class ClusterFile
+    {
+    public:
+        ClusterFile() {}
+        ~ClusterFile() { if (m_file.is_open()) { m_file.close(); } }
+        void open(const char* base_filename);
+        void write_cluster_head(const char* start, ssize_t n);
+        void write_cluster_item(const char* start, ssize_t n);
+    private:
+        std::ofstream m_file;
+    };
+
+
+    // Directory with randomly-generated name
     class TemporaryDirectory
     {
     public:
         TemporaryDirectory();
         ~TemporaryDirectory();
-        inline const char* name()       const  { return m_name;    }
-        inline const string& input1()   const  { return *m_input1;  }
-        inline const string& input2()   const  { return *m_input2;  }
-        inline const string& output1()  const  { return m_output1; }
-        inline const string& output2()  const  { return m_output2; }
-        void clear_inputs();
-        void set_files(const string&);
-        void set_files(const string&, const string&);
-        void save_output(const string&);
-        void save_output(const string&, const string&);
+        inline const char* name()           const   { return m_name;    }
+        inline const string& sorted_left()  const   { return m_sorted1; }
+        inline const string& sorted_right() const   { return m_sorted2; }
     private:
         char* m_name;
-        string const* m_input1;
-        string const* m_input2;
-        string  m_output1, m_output2;
+        string m_sorted1;
+        string m_sorted2;
     };
 }
 

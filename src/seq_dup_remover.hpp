@@ -13,7 +13,13 @@ template<class T>
 class SeqDupRemover
 {
 public:
-    SeqDupRemover(ssize_t, BaseComparator*, TemporaryDirectory*);
+    SeqDupRemover(ssize_t memlimit, BaseComparator* comparator, TemporaryDirectory* tempdir, bool write_clusters, bool verbose) 
+        : m_memlimit(memlimit), m_comparator(comparator), m_tempdir(tempdir), m_write_clusters(write_clusters), m_verbose(verbose)
+    {
+        // perform longest duplicate save only for loose mode to save perfomance
+        if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
+            m_loose_comp = true;
+    }
     ~SeqDupRemover() {}
     void filterSE(const string&, const string&);
     void filterPE(const string&, const string&,
@@ -23,79 +29,83 @@ private:
     void impl_filterPE(const char*, const char*,
                        const char*, const char*);
 private:
-    bool m_loose_comp = false;
     ssize_t m_memlimit;
     BaseComparator* m_comparator;
     TemporaryDirectory* m_tempdir;
+    bool m_loose_comp       = false;
+    bool m_write_clusters   = false;
+    bool m_verbose          = false;
 };
-
-template<class T>
-SeqDupRemover<T>::SeqDupRemover(ssize_t memlimit,
-                                BaseComparator* comparator,
-                                TemporaryDirectory* tempdir)
-{
-    m_memlimit = memlimit;
-    m_comparator = comparator;
-    m_tempdir = tempdir;
-    // perform longest duplicate save only for loose mode to save perfomance
-    if (LooseComparator* tmp = dynamic_cast<LooseComparator*>(comparator); tmp != nullptr)
-    {  
-        m_loose_comp = true;
-    }
-}
 
 template<class T>
 void SeqDupRemover<T>::filterSE(const string& infile,
                                 const string& outfile)
 {
-    // gunzip file if needed
-    m_tempdir->set_files(infile);
-
-    string sorted = (boost::format("%1%/data.sorted") % m_tempdir->name()).str();
     {   // sort input file in a scope so all buffers deallocate
         ExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
-        sorter.sort(m_tempdir->input1().c_str(), sorted.c_str());
+        sorter.sort(infile.c_str(), m_tempdir->sorted_left().c_str());
     }
 
     // deduplicate file
-    this->impl_filterSE(sorted.c_str(), m_tempdir->output1().c_str());
+    this->impl_filterSE(m_tempdir->sorted_left().c_str(), outfile.c_str());
     
-    // save output
-    m_tempdir->save_output(outfile);
 }
 
 template<class T>
 void SeqDupRemover<T>::impl_filterSE(const char* infile,
                                      const char* outfile)
 {
-    std::ofstream output{outfile};
-    check_fstream_ok<std::ofstream>(output, outfile);
+    // std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfile)};
+    FileUtils::UniversalOutputFile output_file{outfile};
+    FileUtils::ClusterFile clusters_file;
+    if (m_write_clusters)
+        clusters_file.open(outfile);
 
     T obj;
     BufferedInput<T> buffer(m_memlimit);
+    size_t tot_reads = 0ul, dup_reads = 0ul;
+
     buffer.set_file(infile);
     obj = buffer.next();
+    tot_reads++;
+
     this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-    output << obj;
+    //output_file->write(obj.start(), obj.size());
+    output_file.write(obj.start(), obj.size());
+    if (m_write_clusters)
+        clusters_file.write_cluster_head(obj.start(), obj.id_len());
 
     while (!buffer.eof())
     {
         while (!buffer.block_end())
         {
             obj = buffer.next();
+            tot_reads++;
             if (!(this->m_comparator->compare(obj.seq(), obj.seq_len())))
             {  // compare returns false -> seqs are different
                 this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-                output << obj;
-            } else if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
-            {
-                // current sequence is a duplicate, but we need to keep the longest one as a reference
-               // this will not affect tight or hamming modes
-               this->m_comparator->set_seq(obj.seq(), obj.seq_len());
-            }
+                //output_file->write(obj.start(), obj.size());
+                output_file.write(obj.start(), obj.size());
+                if (m_write_clusters)
+                    clusters_file.write_cluster_head(obj.start(), obj.id_len());
+            } else {
+                dup_reads++;
+                if (m_loose_comp && (this->m_comparator->left_len() <= obj.seq_len()))
+                {
+                    // current sequence is a duplicate, but we need to keep the longest one as a reference
+                    // this will not affect tight or hamming modes
+                    this->m_comparator->set_seq(obj.seq(), obj.seq_len());
+                }
+
+                if (m_write_clusters)
+                    clusters_file.write_cluster_item(obj.start(), obj.id_len());
+            } 
         }
         buffer.refresh();
     }
+
+    if (m_verbose)
+        std::cout << tot_reads << " reads processed, out of which " << dup_reads << " duplicates were removed.\n";
 }
 
 template<class T>
@@ -104,25 +114,18 @@ void SeqDupRemover<T>::filterPE(const string& infile1,
                                 const string& outfile1,
                                 const string& outfile2)
 {
-    m_tempdir->set_files(infile1, infile2);
-    // string infilename1 = infile1, infilename2 = infile2;
-    
-    string sorted1 = (boost::format("%1%/data.sorted1") % m_tempdir->name()).str();
-    string sorted2 = (boost::format("%1%/data.sorted2") % m_tempdir->name()).str();
     {  // sort input files in a scope so all buffers deallocate
         PairedExternalSorter<T> sorter(m_memlimit, m_tempdir->name());
-        sorter.sort(m_tempdir->input1().c_str(),
-                    m_tempdir->input2().c_str(),
-                    sorted1.c_str(),
-                    sorted2.c_str());
+        sorter.sort(infile1.c_str(),
+                    infile2.c_str(),
+                    m_tempdir->sorted_left().c_str(),
+                    m_tempdir->sorted_right().c_str());
     }
 
-    this->impl_filterPE(sorted1.c_str(),
-                        sorted2.c_str(),
-                        m_tempdir->output1().c_str(),
-                        m_tempdir->output2().c_str());
-    // save outputs
-    m_tempdir->save_output(outfile1, outfile2);
+    this->impl_filterPE(m_tempdir->sorted_left().c_str(),
+                        m_tempdir->sorted_right().c_str(),
+                        outfile1.c_str(),
+                        outfile2.c_str());
 }
 
 template<class T>
@@ -131,21 +134,39 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
                                      const char* outfile1,
                                      const char* outfile2)
 {
-    std::ofstream output1{outfile1};
-    std::ofstream output2{outfile2};
-    check_fstream_ok<std::ofstream>(output1, outfile1);
-    check_fstream_ok<std::ofstream>(output2, outfile2);
+    // std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
+    // std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
+    FileUtils::UniversalOutputFile output_file1{outfile1};
+    FileUtils::UniversalOutputFile output_file2{outfile2};
+    FileUtils::ClusterFile clusters_file1, clusters_file2;
+    if (m_write_clusters)
+    {
+        clusters_file1.open(outfile1);
+        clusters_file2.open(outfile2);
+    }
 
     T left, right;
     BufferedInput<T> left_buffer(m_memlimit/2), right_buffer(m_memlimit/2);
+    size_t tot_reads = 0ul, dup_reads = 0ul;
+
     left_buffer.set_file(infile1);
     right_buffer.set_file(infile2);
     left = left_buffer.next();
     right = right_buffer.next();
+    tot_reads++;
+
     this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                 right.seq(), right.seq_len());
-    output1 << left;
-    output2 << right;
+
+    // output_file1->write(left.start(), left.size());
+    // output_file2->write(right.start(), right.size());
+    output_file1.write(left.start(), left.size());
+    output_file2.write(right.start(), right.size());
+    if (m_write_clusters)
+    {
+        clusters_file1.write_cluster_head(left.start(), left.id_len());
+        clusters_file2.write_cluster_head(right.start(), right.id_len());
+    }
 
     while (!left_buffer.eof() && !right_buffer.eof())
     {
@@ -153,24 +174,45 @@ void SeqDupRemover<T>::impl_filterPE(const char* infile1,
         {
             left = left_buffer.next();
             right = right_buffer.next();
+            tot_reads++;
             if (!(this->m_comparator->compare(left.seq(), left.seq_len(),
                                               right.seq(), right.seq_len())))
             {  // current pair differs -> load it as a new ref
                 this->m_comparator->set_seq(left.seq(), left.seq_len(),
                                             right.seq(), right.seq_len());
-                output1 << left;
-                output2 << right;
-            } else if ( m_loose_comp \
+                // output_file1->write(left.start(), left.size());
+                // output_file2->write(right.start(), right.size());
+                output_file1.write(left.start(), left.size());
+                output_file2.write(right.start(), right.size());
+                if (m_write_clusters)
+                {
+                    clusters_file1.write_cluster_head(left.start(), left.id_len());
+                    clusters_file2.write_cluster_head(right.start(), right.id_len());
+                }
+            } else {
+                dup_reads++;
+                if ( m_loose_comp \
                     && (this->m_comparator->left_len() <= left.seq_len()) \
                     && (this->m_comparator->right_len() <= right.seq_len()))
-            {
-                // current pair is a duplicate, but we need to keep the longest one as a reference
-               // this will not affect tight or hamming modes
-               this->m_comparator->set_seq(left.seq(), left.seq_len(),
-                                           right.seq(), right.seq_len());
+                {
+                    // current pair is a duplicate, but we need to keep the longest one as a reference
+                    // this will not affect tight or hamming modes
+                    this->m_comparator->set_seq(left.seq(), left.seq_len(),
+                                                right.seq(), right.seq_len());
+                }
+
+                if (m_write_clusters)
+                {
+                    clusters_file1.write_cluster_item(left.start(), left.id_len());
+                    clusters_file2.write_cluster_item(right.start(), right.id_len());
+                }
+
             }
         }
         left_buffer.refresh();
         right_buffer.refresh();
     }
+
+    if (m_verbose)
+        std::cout << tot_reads << " read pairs processed, out of which " << dup_reads << " duplicates were removed.\n";
 }

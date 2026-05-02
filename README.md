@@ -5,7 +5,7 @@ fastq-dupaway is a program for efficient deduplication of single-end and paired-
 fastq-dupaway offers two main working modes depending on user's needs:
 
 * the "sequence-based" mode runs with user-defined RAM usage upper limit, and allows the processing of huge NGS datasets on resource-limited machines. For this mode, several types of duplicate definition are available.
-* the "hash-based" mode allows to process large files significantly faster in exchange for unbounded RAM usage and limited deduplication logic (only direct duplicated will be filtered out). For paired-end input, this mode can be additionally triggered to process input files with unsynchronized order of reads.
+* the "fast" mode allows to process large files significantly faster in exchange for unbounded RAM usage and limited deduplication logic (only direct duplicated will be filtered out). For paired-end input, this mode can be additionally triggered to process input files with unsynchronized order of reads.
 
 ## Installation
 
@@ -31,7 +31,7 @@ docker run -it --rm fastq-dupaway --help
 
 ### Manual installation (using conda or system-level boost installation)
 
-The only dependency is [Boost](https://www.boost.org/). This program was developed and tested using Boost libraries version 1.81.0.
+The only dependencies are [Boost](https://www.boost.org/) and zlib. This program was developed and tested using Boost libraries version 1.81.0.
 <br>
 You will also need build tools: g++ compiler version 9 or higher and make.
 
@@ -117,15 +117,14 @@ make
 
 ### Running Docker image
 
-fastq-dupaway Docker image **requires you to mount a volume named /data** when running. The mounted directory should contain your input files.
-The program will run in this directory and create temporary folder during processing. This is done deliberately to prevent creating potentially large temporary files in docker's standard tmp space.
+fastq-dupaway Docker image **creates a folder with temporary files in current working directory** when running. It is highly advised to set container working directory to the externally mounted volume (using `-w` option of `docker run`), otherwise container's filesystem may be overfilled.
+This is done deliberately to prevent creating potentially large temporary files in standard tmp space.
 
 Mount volume with your data directories while running docker image:
 
 ```bash
-# set WORKDIR variable to point to your project working directory
-# Directories ${WORKDIR}/inputs and ${WORKDIR}/outputs should exist
-docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
+
+docker run -it --rm -v [your data directory]:[workdir-name] -w [workdir-name] fastq-dupaway \
         -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
 ```
 
@@ -137,24 +136,35 @@ fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
         ([--compare-seq MODE] | [--fast [--unordered]])
 ```
 
-The only two required arguments are names of input and output files. If only one pair of files was provided, program will run in single-end mode; If both second input and second output filenames were provided, program will run in paired-end mode instead. Complete list of options with explanations is listed in the table below.
+The only two required arguments are names of input and output files. If only INPUT-1 and OUTPUT-1 files was provided, the program will treat input as single-ended; If both INPUT-2 and OUTPUT-2 filenames were provided as well, program will treat inputs as paired-ended instead. 
 
-Option|Value|Description
----|---|---
--h/--help|-|Produce help message and exit.
--i/--input-1|string|First input file (required).
--u/--input-2|string|Second input file (optional, enables paired-end mode).
--o/--output-1|string|First output file (required).
--p/--output-2|string|Second output file (required for paired-end mode).
--m/--mem-limit|integer in range [500, 10240]|Memory limit in megabytes (default 2048 = 2Gb).<br>The hashtable-based deduplication mode does not support strict memory limitation.
---format|either "fastq" (default) or "fasta"|Input file format.
---compare-seq|string (see description)|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence. Outputs of this mode will be similar to those of "fastuniq" program.<br>- "tail-hamming": An experimental option that considers a pair of sequences as duplicates if those differ by no more than a set number of mismatches at their respective ends. Sequences of different lengths will not be compared.
---distance|non-negative integer|A threshold value for Hamming distance calculation. Default value is 2.
---fast|-|Use hash-based approach instead of sequence-based. In this mode the program will run significantly faster, however no memory limit can be set and only complete duplicates will be filtered out.
---unordered|-|This option is supported only by "fast" mode for paired inputs. Use this flag if reads in your paired input files are not synchronized (i.e. the order in which reads appear (determined by read IDs) and/or the number of reads differs between two input files). If this option is enabled, both input files will be sorted by read IDs before deduplication, and reads with unmatched IDs will be skipped.
+The program supports two main deduplication algorithms, further referred to as "modes":
+
+* a streaming "sequence-based" mode that allows setting an upper limit for memory usage and fine-tuning sequence comparison logic but is also disk-usage-intensive. It is enabled by default.
+
+* a "fast" mode that runs faster and is not limited by rate of disk read/write operations. However, it does not allow managing memory limit and only removes direct duplicates.
+
+Several options can only be used with one of the two modes.<br>
+Complete list of options with explanations is listed in the table below.
+
+Option|Value|Mode|Description
+---|---|---|---
+-h/--help|-|-|Produce help message and exit.
+-v/--verbose|-|Both|Report run summary after program execution.
+-i/--input-1|string|Both|First input file (required).
+-u/--input-2|string|Both|Second input file (optional, enables paired-end mode).
+-o/--output-1|string|Both|First output file (required).
+-p/--output-2|string|Both|Second output file (required for paired-end mode).
+-m/--mem-limit|integer in range [500, 10240]|sequence-based|Memory limit in megabytes (default 2048 = 2Gb).<br>"fast" mode does not support this option.
+--format|either "fastq" (default) or "fasta"|Both|Input file format.
+--compare-seq|string (see description)|sequence-based|Sequence comparison logic for sequence-based mode.<br>Supported values:<br>- "tight" (default): compare sequences directly, sequences of different lengths are considered different.<br>- "loose":  compare sequences directly, sequences of different lengths are considered duplicates if shorter sequence exactly matches with prefix of longer sequence. Outputs of this mode will be similar to those of "fastuniq" program.<br>- "tail-hamming": An experimental option that considers a pair of sequences as duplicates if those differ by no more than a set number of mismatches at their respective ends. Sequences of different lengths will not be compared.
+--distance|non-negative integer|sequence-based (tail-hamming only)|A threshold value for Hamming distance calculation. Default value is 2.
+--write-clusters|-|sequence-based|\<Advanced\> Write ids of identified duplicate clusters to a file using id of a preserved read as a name of each cluster.Resulting file is written in addition to main output and is named \<output-file\>.clusters (2 cluster files are written in case of paired mode). 
+--fast|-|fast (enables)|Use faster hash-based approach instead of sequence-based. In this mode the program will run significantly faster, however no memory limit can be set and only complete duplicates will be filtered out.
+--unordered|-|fast (paired inputs only)|\<Advanced\> Use this flag if reads in your paired input files are not synchronized (i.e. the order in which reads appear (determined by read IDs) and/or the number of reads differs between two input files). If this option is enabled, both input files will be sorted by read IDs before deduplication, and reads with unmatched IDs will be skipped.
 
 
-## Detailed explanation of program options and algorithm
+## Detailed explanation of program options and algorithms
 
 Please refer to the [extended manual](doc/algorithm.md) page.
 

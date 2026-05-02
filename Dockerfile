@@ -10,7 +10,8 @@ RUN apt-get update && apt-get --yes --no-install-recommends install \
     make \
     wget \
     zlib1g \
-    zlib1g-dev
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists
 
 # define env variables
 ARG BOOST_VER="1.81.0"
