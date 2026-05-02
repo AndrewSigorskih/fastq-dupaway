@@ -2,7 +2,8 @@
 
 # A simple entrypoint wrapper that ensures that /data exists and is a mounted volume
 EXECUTABLE="fastq-dupaway"
-USAGE="Usage:\n\tdocker run -it --rm -v [Full path to your root data directory]:/data fastq-dupaway:latest [OPTIONS]"
+USAGE="Usage:\n\tdocker run -it --rm -v [Full path to your root data directory]:[workdir-name] -w [workdir-name] fastq-dupaway:latest [OPTIONS]"
+WORKDIR="$(pwd)"
 
 set -e
 
@@ -11,17 +12,18 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     exec "${EXECUTABLE}" "--help"
 fi
 
-# Check that /data is mounted
-if [ ! -d /data ]; then
-    echo "ERROR: /data directory does not exist." >&2
-    exit 1
+# Check that workdir is mounted
+if ! mountpoint -q "$WORKDIR"; then
+    echo "WARNING: Working directory is not a mounted volume."
+    echo "Temporary files may overfill the container filesystem."
 fi
-
-if ! mountpoint -q /data; then
-    echo "ERROR: /data is not a mounted volume.\n${USAGE}" >&2
-    exit 1
-fi
+#   echo "ERROR: Working directory is not a mounted volume."
+#   echo ""
+#   echo "Please run the container with a mounted working directory, e.g.:"
+#   echo "  docker run -v \$(pwd):/work -w /work your-image"
+#   echo ""
+#   echo "Or configure your workflow engine (e.g. Nextflow) to use a work directory."
+#   exit 1
 
 # run fastq-dupaway with user-provided arguments
-cd /data
 exec "${EXECUTABLE}" "$@"

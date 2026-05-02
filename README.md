@@ -31,7 +31,7 @@ docker run -it --rm fastq-dupaway --help
 
 ### Manual installation (using conda or system-level boost installation)
 
-The only dependency is [Boost](https://www.boost.org/). This program was developed and tested using Boost libraries version 1.81.0.
+The only dependencies are [Boost](https://www.boost.org/) and zlib. This program was developed and tested using Boost libraries version 1.81.0.
 <br>
 You will also need build tools: g++ compiler version 9 or higher and make.
 
@@ -117,15 +117,14 @@ make
 
 ### Running Docker image
 
-fastq-dupaway Docker image **requires you to mount a volume named /data** when running. The mounted directory should contain your input files.
-The program will run in this directory and create temporary folder during processing. This is done deliberately to prevent creating potentially large temporary files in docker's standard tmp space.
+fastq-dupaway Docker image **creates a folder with temporary files in current working directory** when running. It is highly advised to set container working directory to the externally mounted volume (using `-w` option of `docker run`), otherwise container's filesystem may be overfilled.
+This is done deliberately to prevent creating potentially large temporary files in standard tmp space.
 
 Mount volume with your data directories while running docker image:
 
 ```bash
-# set WORKDIR variable to point to your project working directory
-# Directories ${WORKDIR}/inputs and ${WORKDIR}/outputs should exist
-docker run -it --rm -v ${WORKDIR}:/data fastq-dupaway \
+
+docker run -it --rm -v [your data directory]:[workdir-name] -w [workdir-name] fastq-dupaway \
         -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
 ```
 
