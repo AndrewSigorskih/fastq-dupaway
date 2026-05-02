@@ -5,6 +5,9 @@ EXECUTABLE="fastq-dupaway"
 USAGE="Usage:\n\tdocker run -it --rm -v [Full path to your root data directory]:[workdir-name] -w [workdir-name] fastq-dupaway:latest [OPTIONS]"
 WORKDIR="$(pwd)"
 
+ROOT_DEV=$(stat -c %d /)
+WORK_DEV=$(stat -c %d "$WORKDIR")
+
 set -e
 
 # just print help and exit
@@ -13,8 +16,8 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 fi
 
 # Check that workdir is mounted
-if ! mountpoint -q "$WORKDIR"; then
-    echo "WARNING: Working directory is not a mounted volume."
+if [ "$ROOT_DEV" = "$WORK_DEV" ]; then
+    echo "WARNING: Working directory is not on a mounted volume."
     echo "Temporary files may overfill the container filesystem."
 fi
 #   echo "ERROR: Working directory is not a mounted volume."
