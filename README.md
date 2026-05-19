@@ -33,7 +33,7 @@ fastq-dupaway offers two main working modes depending on user's needs:
 docker pull asigorskikh/fastq-dupaway:latest
 docker tag asigorskikh/fastq-dupaway:latest fastq-dupaway
 # check that everything went as expected (should print help message and exit):
-docker run -it --rm fastq-dupaway --help
+docker run -it --rm fastq-dupaway
 ```
 
 #### Or clone this repository and build the image <a name="installation-docker-build"></a>
@@ -41,7 +41,7 @@ docker run -it --rm fastq-dupaway --help
 ```bash
 docker build -t fastq-dupaway .
 # check that everything went as expected (should print help message and exit):
-docker run -it --rm fastq-dupaway --help
+docker run -it --rm fastq-dupaway
 ```
 
 ### Alternatively, fastq-dupaway can be installed as a bioconda package <a name="installation-bioconda"></a>
@@ -52,7 +52,7 @@ conda activate fq-dpw
 fastq-dupaway --help
 ```
 
-### Manual installation (using conda or system-level boost installation)
+### Manual installation (using conda or system-level boost installation) <a name="installation-build-source"></a>
 
 The only dependencies are [Boost](https://www.boost.org/) and zlib. This program was developed and tested using Boost libraries version 1.81.0.
 <br>
@@ -146,9 +146,11 @@ This is done deliberately to prevent creating potentially large temporary files 
 Mount volume with your data directories while running docker image:
 
 ```bash
-
-docker run -it --rm -v [your data directory]:[workdir-name] -w [workdir-name] fastq-dupaway \
-        -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
+docker run -it --rm \
+        -v [your data directory]:[workdir-name] \
+        -w [workdir-name] \
+        fastq-dupaway[:tag] \
+        fastq-dupaway -i [workdir-name]/inputs/input.fastq -o [workdir-name]/outputs/output.fastq <other options>
 ```
 
 ### Program options <a name="usage-options"></a>
