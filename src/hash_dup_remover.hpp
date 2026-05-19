@@ -106,7 +106,6 @@ template<class T>
 void HashDupRemover<T>::impl_filterSE(const char* infilename,
                                       const char* outfilename)
 {
-    // std::unique_ptr<FileUtils::I_OutputFile> output_file{FileUtils::openOutputFile(outfilename)};
     FileUtils::UniversalOutputFile output_file{outfilename};
 
     T obj;
@@ -119,9 +118,8 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
     obj = buffer.next();
     tot_reads++;
 
-    // output_file->write(obj.start(), obj.size());
     output_file.write(obj.start(), obj.size());
-    records.insert(std::move(setRecord(obj.seq(), obj.seq_len()-1)));
+    records.insert(setRecord(obj.seq(), obj.seq_len()-1));
 
     while (!buffer.eof())
     {
@@ -133,7 +131,6 @@ void HashDupRemover<T>::impl_filterSE(const char* infilename,
             auto it = records.find(record);
             if (it == records.end())
             {   
-                // output_file->write(obj.start(), obj.size());
                 output_file.write(obj.start(), obj.size());
                 records.insert(std::move(record));
             } else {
@@ -197,8 +194,6 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
                                       const char* outfile1,
                                       const char* outfile2)
 {
-    // std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
-    // std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
     FileUtils::UniversalOutputFile output_file1{outfile1};
     FileUtils::UniversalOutputFile output_file2{outfile2};
 
@@ -214,15 +209,11 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
     right = right_buffer.next();
     tot_reads++;
 
-    // output_file1->write(left.start(), left.size());
-    // output_file2->write(right.start(), right.size());
     output_file1.write(left.start(), left.size());
     output_file2.write(right.start(), right.size());
     records.insert(
-        std::move(
-            setRecordPair(left.seq(), left.seq_len()-1,
-                          right.seq(), right.seq_len()-1)
-        )
+        setRecordPair(left.seq(), left.seq_len()-1,
+                        right.seq(), right.seq_len()-1)
     );
 
     while (!left_buffer.eof() && !right_buffer.eof())
@@ -237,8 +228,6 @@ void HashDupRemover<T>::impl_filterPE(const char* infile1,
             auto it = records.find(record);
             if (it == records.end())
             {
-                // output_file1->write(left.start(), left.size());
-                // output_file2->write(right.start(), right.size());
                 output_file1.write(left.start(), left.size());
                 output_file2.write(right.start(), right.size());
                 records.insert(std::move(record));
@@ -260,8 +249,6 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
                                                 const char* outfile1,
                                                 const char* outfile2)
 {
-    // std::unique_ptr<FileUtils::I_OutputFile> output_file1{FileUtils::openOutputFile(outfile1)};
-    // std::unique_ptr<FileUtils::I_OutputFile> output_file2{FileUtils::openOutputFile(outfile2)};
     FileUtils::UniversalOutputFile output_file1{outfile1};
     FileUtils::UniversalOutputFile output_file2{outfile2};
 
@@ -296,8 +283,6 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
                 auto it = records.find(record);
                 if (it == records.end())
                 {
-                    // output_file1->write(left.start(), left.size());
-                    // output_file2->write(right.start(), right.size());
                     output_file1.write(left.start(), left.size());
                     output_file2.write(right.start(), right.size());
                     records.insert(std::move(record));
@@ -330,8 +315,6 @@ void HashDupRemover<T>::impl_filterPE_unordered(const char* infile1,
         auto it = records.find(record);
         if (it == records.end())
         {
-            // output_file1->write(left.start(), left.size());
-            // output_file2->write(right.start(), right.size());
             output_file1.write(left.start(), left.size());
             output_file2.write(right.start(), right.size());
         } else {
