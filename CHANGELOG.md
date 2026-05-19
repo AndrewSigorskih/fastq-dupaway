@@ -5,6 +5,12 @@
 - [TODO] Increase user-defined upper memory limit to at least 20G
 - [TODO] Further optimize size of output write buffers
 
+## [ 1.5.1 ] - May 19th, 2026
+
+- Removed entrypoint script so image is fully compatible with scientific workflow orchestration tools like Nextflow
+- Added bioconda installation instructions
+- Removed small misuse of move instruction in "fast" modes
+
 ## [ 1.5 ] - May 3rd, 2026
 
 - Added "write-clusters" option for sequence-based modes
