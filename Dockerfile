@@ -43,7 +43,5 @@ RUN make && \
     mv fastq-dupaway /usr/local/bin && \
     cd .. && rm -rf fastq-dupaway
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
+ENTRYPOINT []
+CMD ["fastq-dupaway", "--help"]

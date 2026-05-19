@@ -7,9 +7,25 @@ fastq-dupaway offers two main working modes depending on user's needs:
 * the "sequence-based" mode runs with user-defined RAM usage upper limit, and allows the processing of huge NGS datasets on resource-limited machines. For this mode, several types of duplicate definition are available.
 * the "fast" mode allows to process large files significantly faster in exchange for unbounded RAM usage and limited deduplication logic (only direct duplicated will be filtered out). For paired-end input, this mode can be additionally triggered to process input files with unsynchronized order of reads.
 
-## Installation
 
-### Using Docker image (recommended)
+# Table of contents
+1. [Installation](#installation-main)
+    1. [Using Docker image](#installation-docker-pull)
+    2. [Using local docker build](#installation-docker-build)
+    3. [Using Bioconda](#installation-bioconda)
+    4. [Building from source](#installation-build-source)
+2. [Usage](#usage-main)
+    1. [Running Docker image](#usage-docker)
+    2. [Program options](#usage-options)
+3. [Detailed explanation of program options and algorithms](#explanation)
+4. [Additional information](#extra-info)
+5. [Running tests](#tests)
+6. [How to cite](#cite-info)
+
+
+## Installation <a name="installation-main"></a>
+
+### Using Docker image (recommended) <a name="installation-docker-pull"></a>
 
 #### Pull image from Docker Hub
 
@@ -17,19 +33,26 @@ fastq-dupaway offers two main working modes depending on user's needs:
 docker pull asigorskikh/fastq-dupaway:latest
 docker tag asigorskikh/fastq-dupaway:latest fastq-dupaway
 # check that everything went as expected (should print help message and exit):
-docker run -it --rm fastq-dupaway --help
+docker run -it --rm fastq-dupaway
 ```
 
-
-#### Or clone this repository and build the image
+#### Or clone this repository and build the image <a name="installation-docker-build"></a>
 
 ```bash
 docker build -t fastq-dupaway .
 # check that everything went as expected (should print help message and exit):
-docker run -it --rm fastq-dupaway --help
+docker run -it --rm fastq-dupaway
 ```
 
-### Manual installation (using conda or system-level boost installation)
+### Alternatively, fastq-dupaway can be installed as a bioconda package <a name="installation-bioconda"></a>
+
+```bash
+conda create -n fq-dpw -c bioconda -c conda-forge fastq-dupaway
+conda activate fq-dpw
+fastq-dupaway --help
+```
+
+### Manual installation (using conda or system-level boost installation) <a name="installation-build-source"></a>
 
 The only dependencies are [Boost](https://www.boost.org/) and zlib. This program was developed and tested using Boost libraries version 1.81.0.
 <br>
@@ -95,7 +118,7 @@ make clean
 
 ### (Optional) Build using CMake
 
-CMake can help you detect correct Boost instllation in case you have multiple on your system.
+CMake can help you detect correct Boost installation in case you have multiple on your system.
 
 ```bash
 cd fastq-dupaway
@@ -111,11 +134,11 @@ make
 ```
 
 
-## Usage
+## Usage <a name="usage-main"></a>
 
 **NB**: fastq-dupaway requires **a lot of disk space** (~2 times the input size on average, depends on --mem-limit option value) while running in "sequence-based" mode; that is the cost of limited RAM usage algorithm. The "fast" mode is not disk-intensive and can be used when strict RAM limitation is not in priority.
 
-### Running Docker image
+### Running Docker image <a name="usage-docker"></a>
 
 fastq-dupaway Docker image **creates a folder with temporary files in current working directory** when running. It is highly advised to set container working directory to the externally mounted volume (using `-w` option of `docker run`), otherwise container's filesystem may be overfilled.
 This is done deliberately to prevent creating potentially large temporary files in standard tmp space.
@@ -123,12 +146,14 @@ This is done deliberately to prevent creating potentially large temporary files 
 Mount volume with your data directories while running docker image:
 
 ```bash
-
-docker run -it --rm -v [your data directory]:[workdir-name] -w [workdir-name] fastq-dupaway \
-        -i /data/inputs/input.fastq -o /data/outputs/output.fastq <other options>
+docker run -it --rm \
+        -v [your data directory]:[workdir-name] \
+        -w [workdir-name] \
+        fastq-dupaway[:tag] \
+        fastq-dupaway -i [workdir-name]/inputs/input.fastq -o [workdir-name]/outputs/output.fastq <other options>
 ```
 
-### Program options
+### Program options <a name="usage-options"></a>
 
 ```
 fastq-dupaway -i INPUT-1 [-u INPUT-2] -o OUTPUT-1 [-p OUTPUT-2] \
@@ -164,12 +189,12 @@ Option|Value|Mode|Description
 --unordered|-|fast (paired inputs only)|\<Advanced\> Use this flag if reads in your paired input files are not synchronized (i.e. the order in which reads appear (determined by read IDs) and/or the number of reads differs between two input files). If this option is enabled, both input files will be sorted by read IDs before deduplication, and reads with unmatched IDs will be skipped.
 
 
-## Detailed explanation of program options and algorithms
+## Detailed explanation of program options and algorithms <a name="explanation"></a>
 
 Please refer to the [extended manual](doc/algorithm.md) page.
 
 
-## Additional information
+## Additional information <a name="extra-info"></a>
 
 * Input filenames ending with ".gz" will be treated as binary files compressed by gzip program. If output filenames provided also end with ".gz", output files will be compressed as well.
 
@@ -177,7 +202,7 @@ Please refer to the [extended manual](doc/algorithm.md) page.
 
 * If you are experienceing unexpected results, first of all check if the last line in your input is terminated with a newline character ('\n'). Absence of newline terminator at the end of input file will affect program behaviour.
 
-## Running tests
+## Running tests <a name="tests"></a>
 
 Correctness of the program's algorithm is tested by running a set of tests that can be found in the `test/` folder. In order to run tests, first create a Python virtual environment using venv or conda (recommended Python version is 3.12) and install required packages:
 
@@ -193,7 +218,7 @@ Then run tests using pytest:
 pytest -v test/
 ```
 
-## How to cite
+## How to cite <a name="cite-info"></a>
 
 To cite fastq-dupaway in publications, please use
 
